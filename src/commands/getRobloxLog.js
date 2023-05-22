@@ -64,11 +64,6 @@ module.exports = {
 				.setRequired(true))
 		.addStringOption(option =>
 			option
-				.setName('reason')
-				.setDescription('Reason for log.')
-				.setRequired(true))
-		.addStringOption(option =>
-			option
 				.setName('type')
 				.setDescription('Type of infraction')
 				.setRequired(true)
@@ -77,6 +72,16 @@ module.exports = {
 					{ name: 'Game: Kick', value: 'Kick' },
 					{ name: 'Game: Warn', value: 'Warn' },
 				))
+		.addStringOption(option =>
+			option
+				.setName('reason')
+				.setDescription('Reason for log.')
+				.setRequired(true))
+		.addStringOption(option =>
+			option
+				.setName('note')
+				.setDescription('Extra notes, not required and completely optional.')
+				.setRequired(false))
 		.addBooleanOption(option =>
 			option
 				.setName('multimessage')

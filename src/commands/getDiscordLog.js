@@ -81,11 +81,6 @@ module.exports = {
 				.setRequired(true))
 		.addStringOption(option =>
 			option
-				.setName('reason')
-				.setDescription('Reason for log if multimessage is set to true you can use "|" to separate logs for each log message.')
-				.setRequired(true))
-		.addStringOption(option =>
-			option
 				.setName('type')
 				.setDescription('Type of infraction')
 				.setRequired(true)

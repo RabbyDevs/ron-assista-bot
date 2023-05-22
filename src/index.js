@@ -6,7 +6,6 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
 const { token, clientId, guildId } = require('/home/rabby/ron-assista-bot/config.json');
 const { restart, lastInteractedChannel, user } = require(filepath);
-const http = require('https');
 
 // Construct and prepare an instance of the REST module
 const rest = new REST({ version: '10' }).setToken(token);
