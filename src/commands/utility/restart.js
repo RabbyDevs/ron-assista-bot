@@ -8,7 +8,7 @@ module.exports = {
 		.setName('restart')
 		.setDescription('Restart the bot, happens automatically if the bot errors!'),
 	async execute(interaction) {
-		console.log('Bot restart initiated!');
+		console.log(`Bot restart initiated by ${interaction.user.username}!`);
 		await interaction.deferReply();
 		await interaction.editReply('Restarting bot!');
 		json = { 'restart': true, 'lastInteractedChannel': await interaction.channelId, 'user': await interaction.user.id };

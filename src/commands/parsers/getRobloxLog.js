@@ -75,18 +75,18 @@ module.exports = {
 		.addStringOption(option =>
 			option
 				.setName('reason')
-				.setDescription('Reason for log.')
+				.setDescription('Reason for log can be split via |, split only works if multimessage is True.')
 				.setRequired(true))
 		.addStringOption(option =>
 			option
 				.setName('note')
-				.setDescription('Extra notes, not required and completely optional.')
+				.setDescription('Extra notes, can be split via |, split only works if multimessage is True.')
 				.setRequired(false))
 		.addBooleanOption(option =>
 			option
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
-				.setRequired(true),
+				.setRequired(false),
 		),
 	async execute(interaction) {
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
@@ -94,22 +94,28 @@ module.exports = {
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const multiMessage = interaction.options.getBoolean('multimessage');
+		const note = interaction.options.getString('note').split('|');
+		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const robloxUsers = await getRobloxIdFromUser(users);
 		async function makeSingleLog() {
 			let text = `[${type}]\n`;
 			for (const userData of robloxUsers.data) {
 				text += `[${userData.name}:${userData.id}]\n`;
 			}
-			text += `[${reason}]`;
+			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
+			await interaction.editReply(text);
 		}
 		async function multiLog() {
 			let reasonNumber = 0;
+			let noteNumber = 0;
 			for (const userData of robloxUsers.data) {
-				await interaction.followUp(`[${type}]\n[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`);
-				if (reason[reasonNumber + 1] != undefined) {
-					reasonNumber = reasonNumber + 1;
-				}
+				const textNoNote = `[${type}]\n[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
+				const textWithNote = `[${type}]\n[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
+				const followUp = (note[noteNumber] ? textWithNote : textNoNote);
+				await interaction.followUp(followUp);
+				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
+				note[noteNumber] = null;
+				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
 		async function commandLogic() {
@@ -118,7 +124,7 @@ module.exports = {
 				multiLog();
 			}
 			else {
-				await interaction.editReply(await makeSingleLog());
+				makeSingleLog();
 			}
 		}
 		switch (type) {
@@ -135,6 +141,6 @@ module.exports = {
 			break;
 		}
 		}
-		console.log(`Command getrobloxlog started by ${interaction.username} ended on ${await getDate()}`);
+		console.log(`Command getrobloxlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

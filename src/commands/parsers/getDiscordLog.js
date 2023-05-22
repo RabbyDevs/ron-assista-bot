@@ -88,21 +88,32 @@ module.exports = {
 					{ name: 'Discord: Ban', value: 'Ban' },
 					{ name: 'Discord: Warn', value: 'Warn' },
 				))
+		.addStringOption(option =>
+			option
+				.setName('reason')
+				.setDescription('Reason for log can be split via |, split only works if multimessage is True.')
+				.setRequired(true))
+		.addStringOption(option =>
+			option
+				.setName('note')
+				.setDescription('Extra notes, can be split via |, split only works if multimessage is True.')
+				.setRequired(false))
 		.addBooleanOption(option =>
 			option
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
-				.setRequired(true),
+				.setRequired(false),
 		),
 	async execute(interaction) {
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const multiMessage = interaction.options.getBoolean('multimessage');
+		const note = interaction.options.getString('note').split('|');
+		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		async function makeSingleLog() {
 			let text = '';
-			text = `Log from <@${interaction.user.id}>.\n[${type}]\n`;
+			text = `[${type}]\n`;
 			for (const id of users) {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id);
@@ -113,23 +124,30 @@ module.exports = {
 					text += `[<\\@${id}>:${id}]\n`;
 				}
 			}
-			text += `[${reason}]`;
-			return text;
+			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
+			await interaction.editReply(text);
 		}
 		async function multiLog() {
 			let reasonNumber = 0;
+			let noteNumber = 0;
 			for (const id of users) {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id);
 					const robloxUser = await getUserFromRobloxId(await robloxId);
-					await interaction.followUp(`[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]`);
+					const textNoNote = `[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]`;
+					const textWithNote = `[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
+					const followUp = (note[noteNumber] ? textWithNote : textNoNote);
+					await interaction.followUp(followUp);
 				}
 				else {
-					await interaction.followUp(`[${type}]\n[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]`);
+					const textNoNote = `[${type}]\n[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]`;
+					const textWithNote = `[${type}]\n[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
+					const followUp = (note[noteNumber] ? textWithNote : textNoNote);
+					await interaction.followUp(followUp);
 				}
-				if (reason[reasonNumber + 1] != undefined) {
-					reasonNumber = reasonNumber + 1;
-				}
+				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
+				note[noteNumber] = null;
+				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
 		async function commandLogic() {
@@ -138,7 +156,7 @@ module.exports = {
 				multiLog();
 			}
 			else {
-				await interaction.editReply(await makeSingleLog());
+				makeSingleLog();
 			}
 		}
 		await interaction.deferReply();
@@ -152,6 +170,6 @@ module.exports = {
 			break;
 		}
 		}
-		console.log(`Command getdiscordlog started by ${interaction.username} ended on ${await getDate()}`);
+		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };
