@@ -133,4 +133,4 @@ dist
 config.json
 
 # eslint
-/home/rabby/ron-assista-bot/.eslintrc.json
+.eslintrc.json
