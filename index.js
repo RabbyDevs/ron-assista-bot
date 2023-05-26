@@ -1,11 +1,11 @@
 /* eslint-disable max-nested-callbacks */
 // Require the necessary discord.js classes
-const filepath = '/home/rabby/ron-assista-bot/src/cache.json';
+const cacheFilepath = '/home/rabby/ron-assista-bot/src/cache.json';
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
 const { token, clientId, guildId } = require('/home/rabby/ron-assista-bot/config.json');
-const { restart, lastInteractedChannel, user } = require(filepath);
+const { restart, lastInteractedChannel, user } = require(cacheFilepath);
 
 // Construct and prepare an instance of the REST module
 const rest = new REST({ version: '10' }).setToken(token);
@@ -17,7 +17,7 @@ client.commands = new Collection();
 
 const commands = [];
 // Grab all the command files from the commands directory you created earlier
-const foldersPath = path.join(__dirname, 'commands');
+const foldersPath = path.join(__dirname, 'src/commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
 // Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
@@ -105,6 +105,6 @@ client.login(token).then(() => {
 				console.log('Restart complete!');
 				channel.send(`<@${user}> restart complete!`);
 			});
-		fs.writeFileSync(filepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
+		fs.writeFileSync(cacheFilepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
 	}
 });

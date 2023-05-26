@@ -3,6 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const http = require('https');
 
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
+const { error } = require('console');
 
 async function getDate() {
 	const today = new Date();
@@ -14,8 +15,8 @@ async function getDate() {
 
 async function getRobloxId(userId) {
 	const id = new Promise((resolve, reject) => {
-		http.get(`https://v3.blox.link/developer/discord/${userId}?guildId=GuildIdHere`, {
-			headers: { 'api-key': bloxlinkAPIKey },
+		http.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
+			headers: { 'Authorization': bloxlinkAPIKey },
 		}, (response) => {
 			const data = [];
 			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
@@ -30,10 +31,11 @@ async function getRobloxId(userId) {
 			response.on('end', () => {
 				console.log(`Response ended in: ${data}`);
 				const obj = JSON.parse(data);
-				if (obj.success == true) {
-					resolve(obj.user.robloxId);
+				if (response.statusCode == 200) {
+					resolve(obj.robloxID);
 				}
 				else {
+					error(obj.error);
 					reject(obj.error);
 				}
 			});
