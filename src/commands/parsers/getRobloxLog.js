@@ -13,7 +13,7 @@ async function getDate() {
 async function getRobloxIdFromUser(robloxUserTable) {
 	const postData = JSON.stringify({
 		'usernames': robloxUserTable,
-		'excludeBannedUsers': true,
+		'excludeBannedUsers': false,
 	});
 	const options = {
 		hostname: 'users.roblox.com',
