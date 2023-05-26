@@ -7,7 +7,7 @@
     "test": "test"
   },
   "author": "rabby",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "dependencies": {
     "7": "^0.0.1",
     "discord.js": "^14.9.0",
