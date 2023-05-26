@@ -107,11 +107,11 @@ module.exports = {
 				.setRequired(false),
 		),
 	async execute(interaction) {
-		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}.`);
+		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const note = interaction.options.getString('note').split('|');
+		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		async function makeSingleLog() {
 			let text = '';
