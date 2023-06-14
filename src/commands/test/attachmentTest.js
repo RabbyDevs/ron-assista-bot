@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('test')
+		.setName('attachment')
 		.setDescription('10101010101')
 		.addAttachmentOption(option =>
 			option

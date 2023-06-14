@@ -94,7 +94,7 @@ module.exports = {
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const note = interaction.options.getString('note').split('|');
+		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const robloxUsers = await getRobloxIdFromUser(users);
 		async function makeSingleLog() {

@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 const http = require('https');
 
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
-const { error } = require('console');
+const { error, Console } = require('console');
 
 async function getDate() {
 	const today = new Date();
@@ -20,7 +20,7 @@ async function getRobloxId(userId) {
 		}, (response) => {
 			const data = [];
 			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log('Bloxlink GET request started by getRobloxId!');
+			console.log(`Bloxlink GET request started by getRobloxId. Input is: ${userId}`);
 			console.log('Status Code:', response.statusCode);
 			console.log('Date in Response header:', headerDate);
 
