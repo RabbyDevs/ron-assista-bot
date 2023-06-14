@@ -35,7 +35,6 @@ async function getRobloxId(userId) {
 					resolve(obj.robloxID);
 				}
 				else {
-					error(obj.error);
 					reject(obj.error);
 				}
 			});
