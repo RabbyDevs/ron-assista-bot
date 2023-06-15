@@ -161,16 +161,7 @@ module.exports = {
 			}
 		}
 		await interaction.deferReply();
-		switch (type) {
-		case 'Warn': {
 			commandLogic();
-			break;
-		}
-		case 'Ban': {
-			commandLogic();
-			break;
-		}
-		}
 		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };
