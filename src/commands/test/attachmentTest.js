@@ -13,5 +13,6 @@ module.exports = {
 		const attachment = await interaction.options.getAttachment('attachment');
 		console.log(await attachment.name);
 		await interaction.deferReply();
+		await interaction.editReply('yeah no this is a test');
 	},
 };
