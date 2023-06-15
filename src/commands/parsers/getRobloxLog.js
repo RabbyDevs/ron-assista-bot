@@ -2,6 +2,11 @@
 const { SlashCommandBuilder } = require('discord.js');
 const http = require('https');
 
+async function err(interaction, error) {
+	await interaction.editReply({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	throw error;
+}
+
 async function getDate() {
 	const today = new Date();
 	const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
@@ -68,7 +73,9 @@ module.exports = {
 				.setDescription('Type of infraction')
 				.setRequired(true)
 				.setChoices(
-					{ name: 'Game: Ban', value: 'Ban' },
+					{ name: 'Game: Ban', value: 'Game Ban' },
+					{ name: 'Game: Tempban', value: 'Temporary Game Ban' },
+					{ name: 'Game: Serverban', value: 'Game Server Ban' },
 					{ name: 'Game: Kick', value: 'Kick' },
 					{ name: 'Game: Warn', value: 'Warn' },
 				))
@@ -86,19 +93,25 @@ module.exports = {
 			option
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
+				.setRequired(false))
+		.addStringOption(option =>
+			option
+				.setName('duration')
+				.setDescription('Duration of the mute, or Temporary Ban.')
 				.setRequired(false),
 		),
 	async execute(interaction) {
-		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		await interaction.deferReply();
+		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
 		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
-		const robloxUsers = await getRobloxIdFromUser(users);
+		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
+		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));
 		async function makeSingleLog() {
-			let text = `[${type}]\n`;
+			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const userData of robloxUsers.data) {
 				text += `[${userData.name}:${userData.id}]\n`;
 			}
@@ -109,37 +122,22 @@ module.exports = {
 			let reasonNumber = 0;
 			let noteNumber = 0;
 			for (const userData of robloxUsers.data) {
-				const textNoNote = `[${type}]\n[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
-				const textWithNote = `[${type}]\n[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-				const followUp = (note[noteNumber] ? textWithNote : textNoNote);
-				await interaction.followUp(followUp);
+				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
+				const textNoNote = `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
+				const textWithNote = `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
+				text += (note[noteNumber] ? textWithNote : textNoNote);
+				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				note[noteNumber] = null;
 				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
-		async function commandLogic() {
-			if (multiMessage == true) {
-				await interaction.editReply('Creating multiple logs, please standby!');
-				multiLog();
-			}
-			else {
-				makeSingleLog();
-			}
+		if (multiMessage == true) {
+			await interaction.editReply('Creating multiple logs, please standby!');
+			multiLog();
 		}
-		switch (type) {
-		case 'Ban': {
-			commandLogic();
-			break;
-		}
-		case 'Kick': {
-			commandLogic();
-			break;
-		}
-		case 'Warn': {
-			commandLogic();
-			break;
-		}
+		else {
+			makeSingleLog();
 		}
 		console.log(`Command getrobloxlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},

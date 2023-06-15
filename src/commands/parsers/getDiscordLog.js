@@ -3,7 +3,11 @@ const { SlashCommandBuilder } = require('discord.js');
 const http = require('https');
 
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
-const { error, Console } = require('console');
+
+async function err(interaction, error) {
+	await interaction.editReply({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	throw error;
+}
 
 async function getDate() {
 	const today = new Date();
@@ -87,6 +91,8 @@ module.exports = {
 				.setRequired(true)
 				.setChoices(
 					{ name: 'Discord: Ban', value: 'Ban' },
+					{ name: 'Discord: Temporary Ban', value: 'Temporary Ban' },
+					{ name: 'Discord: Mute', value: 'Mute' },
 					{ name: 'Discord: Warn', value: 'Warn' },
 				))
 		.addStringOption(option =>
@@ -103,22 +109,29 @@ module.exports = {
 			option
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
+				.setRequired(false))
+		.addStringOption(option =>
+			option
+				.setName('duration')
+				.setDescription('Duration of the mute, or Temporary Ban.')
 				.setRequired(false),
 		),
 	async execute(interaction) {
+		await interaction.deferReply();
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
 		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
+		const duration = (type == 'Mute' || type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		async function makeSingleLog() {
-			let text = '';
-			text = `[${type}]\n`;
+			console.log('hi chat');
+			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
 				if (type == 'Ban') {
-					const robloxId = await getRobloxId(id);
-					const robloxUser = await getUserFromRobloxId(await robloxId);
+					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
+					const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
 					text += `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`;
 				}
 				else {
@@ -132,36 +145,33 @@ module.exports = {
 			let reasonNumber = 0;
 			let noteNumber = 0;
 			for (const id of users) {
+				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 				if (type == 'Ban') {
-					const robloxId = await getRobloxId(id);
-					const robloxUser = await getUserFromRobloxId(await robloxId);
-					const textNoNote = `[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]`;
+					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
+					const robloxUser = await getUserFromRobloxId(await robloxId.catch(error => err(interaction, error)));
+					const textNoNote = `[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]`;
 					const textWithNote = `[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-					const followUp = (note[noteNumber] ? textWithNote : textNoNote);
-					await interaction.followUp(followUp);
+					text += (note[noteNumber] ? textWithNote : textNoNote);
+					await interaction.followUp(text);
 				}
 				else {
-					const textNoNote = `[${type}]\n[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]`;
-					const textWithNote = `[${type}]\n[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-					const followUp = (note[noteNumber] ? textWithNote : textNoNote);
-					await interaction.followUp(followUp);
+					const textNoNote = `[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]`;
+					const textWithNote = `[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
+					text += (note[noteNumber] ? textWithNote : textNoNote);
+					await interaction.followUp(text);
 				}
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				note[noteNumber] = null;
 				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
-		async function commandLogic() {
-			if (multiMessage == true) {
-				await interaction.editReply('Creating multiple logs, please standby!');
-				multiLog();
-			}
-			else {
-				makeSingleLog();
-			}
+		if (multiMessage == true) {
+			await interaction.editReply('Creating multiple logs, please standby!');
+			multiLog();
 		}
-		await interaction.deferReply();
-			commandLogic();
+		else {
+			makeSingleLog();
+		}
 		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };
