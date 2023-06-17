@@ -101,7 +101,7 @@ module.exports = {
 				.setRequired(false),
 		),
 	async execute(interaction) {
-		await interaction.deferReply();
+		await interaction.editReply('Making logs, please stand-by.');
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
@@ -123,9 +123,8 @@ module.exports = {
 			let noteNumber = 0;
 			for (const userData of robloxUsers.data) {
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-				const textNoNote = `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
-				const textWithNote = `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-				text += (note[noteNumber] ? textWithNote : textNoNote);
+				text += `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
+				text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
 				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				note[noteNumber] = null;

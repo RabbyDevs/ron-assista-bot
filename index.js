@@ -11,7 +11,13 @@ const { restart, lastInteractedChannel, user } = require(cacheFilepath);
 const rest = new REST({ version: '10' }).setToken(token);
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [
+	GatewayIntentBits.Guilds,
+	GatewayIntentBits.GuildPresences,
+	GatewayIntentBits.GuildMembers,
+	GatewayIntentBits.GuildMessages,
+	GatewayIntentBits.MessageContent,
+] });
 
 client.commands = new Collection();
 

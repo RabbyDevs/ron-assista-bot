@@ -5,7 +5,7 @@ const http = require('https');
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
 
 async function err(interaction, error) {
-	await interaction.editReply({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	await interaction.editReply({ content: `**There was an error while executing this command!**\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
 	throw error;
 }
 
@@ -118,6 +118,8 @@ module.exports = {
 		),
 	async execute(interaction) {
 		await interaction.deferReply();
+		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
+		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log.') : await interaction.editReply('Making logs, please stand-by.'));
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
@@ -132,14 +134,15 @@ module.exports = {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 					const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
-					text += `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`;
+					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
 				}
 				else {
-					text += `[<\\@${id}>:${id}]\n`;
+					text += (isMobile == true ? `[<@${id}>:${id}]` : `[<\\@${id}>:${id}]`);
 				}
 			}
-			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
-			await interaction.editReply(text);
+			text += (note[0] ? `\n[${reason[0]}]\nNote: ${note[0]}` : `\n[${reason[0]}]`);
+			await interaction.followUp(text);
+			(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 		}
 		async function multiLog() {
 			let reasonNumber = 0;
@@ -149,16 +152,18 @@ module.exports = {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 					const robloxUser = await getUserFromRobloxId(await robloxId.catch(error => err(interaction, error)));
-					const textNoNote = `[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]`;
-					const textWithNote = `[${type}]\n[<\\@${id}>:${id}:[${robloxUser}]:${robloxId}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-					text += (note[noteNumber] ? textWithNote : textNoNote);
+					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]`);
+					text += `\n[${reason[reasonNumber]}]`;
+					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
 					await interaction.followUp(text);
+					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 				}
 				else {
-					const textNoNote = `[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]`;
-					const textWithNote = `[<\\@${id}>:${id}]\n[${reason[reasonNumber]}]\nNote: ${note[noteNumber]}`;
-					text += (note[noteNumber] ? textWithNote : textNoNote);
+					text += (isMobile == true ? `[<@${id}>:${id}]` : `[<\\@${id}>:${id}]`);
+					text += `\n[${reason[reasonNumber]}]`;
+					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
 					await interaction.followUp(text);
+					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 				}
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				note[noteNumber] = null;
