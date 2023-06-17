@@ -134,7 +134,7 @@ module.exports = {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 					const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
-					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
+					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]`);
 				}
 				else {
 					text += (isMobile == true ? `[<@${id}>:${id}]` : `[<\\@${id}>:${id}]`);
