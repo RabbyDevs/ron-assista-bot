@@ -2,11 +2,13 @@
 const { SlashCommandBuilder } = require('discord.js');
 const http = require('https');
 
+// helper function: error the command
 async function err(interaction, error) {
 	await interaction.editReply({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
 	throw error;
 }
 
+// helper function: get the current date
 async function getDate() {
 	const today = new Date();
 	const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
@@ -15,6 +17,7 @@ async function getDate() {
 	return dateTime;
 }
 
+// get the ID of multiple roblox users from their usernames.
 async function getRobloxIdFromUser(robloxUserTable) {
 	const postData = JSON.stringify({
 		'usernames': robloxUserTable,
@@ -102,8 +105,9 @@ module.exports = {
 		),
 	async execute(interaction) {
 		await interaction.deferReply();
-		await interaction.editReply('Making logs, please stand-by.');
+		await interaction.editReply('Making logs, please stand-by!');
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
+		// variables/arguments
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
@@ -111,14 +115,16 @@ module.exports = {
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));
+		// make a single log, using the above arguments.
 		async function makeSingleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const userData of robloxUsers.data) {
 				text += `[${userData.name}:${userData.id}]\n`;
 			}
 			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
-			await interaction.editReply(text);
+			await interaction.followUp(text);
 		}
+		// make multiple logs via arguments above and table magic
 		async function multiLog() {
 			let reasonNumber = 0;
 			let noteNumber = 0;
@@ -132,6 +138,7 @@ module.exports = {
 				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
+		// basic command logic for multilog
 		if (multiMessage == true) {
 			await interaction.editReply('Creating multiple logs, please standby!');
 			multiLog();

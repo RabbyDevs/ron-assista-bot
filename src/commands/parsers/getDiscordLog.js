@@ -4,11 +4,13 @@ const http = require('https');
 
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
 
+// helper function: error the command
 async function err(interaction, error) {
 	await interaction.editReply({ content: `**There was an error while executing this command!**\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
 	throw error;
 }
 
+// helper function: get the current date.
 async function getDate() {
 	const today = new Date();
 	const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
@@ -17,6 +19,7 @@ async function getDate() {
 	return dateTime;
 }
 
+// Gets the RobloxID of a discord user VIA bloxlink global api.
 async function getRobloxId(userId) {
 	const id = new Promise((resolve, reject) => {
 		http.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
@@ -47,6 +50,7 @@ async function getRobloxId(userId) {
 	return id;
 }
 
+// Gets the username from a Roblox ID via Roblox official API endpoints.
 async function getUserFromRobloxId(robloxId) {
 	const username = new Promise((resolve, reject) => {
 		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
@@ -118,17 +122,19 @@ module.exports = {
 		),
 	async execute(interaction) {
 		await interaction.deferReply();
+		// detect if the user is on mobile on any platform:
 		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
-		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log.') : await interaction.editReply('Making logs, please stand-by.'));
+		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log.') : await interaction.editReply('Making logs, please stand-by!'));
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
+		// variables/arguments
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
 		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Mute' || type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
+		// make a single log from above arguments.
 		async function makeSingleLog() {
-			console.log('hi chat');
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
 				if (type == 'Ban') {
@@ -144,6 +150,7 @@ module.exports = {
 			await interaction.followUp(text);
 			(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 		}
+		// make a multiple msg log from arguments + table magic
 		async function multiLog() {
 			let reasonNumber = 0;
 			let noteNumber = 0;
@@ -170,6 +177,7 @@ module.exports = {
 				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
+		// command logic
 		if (multiMessage == true) {
 			await interaction.editReply('Creating multiple logs, please standby!');
 			multiLog();

@@ -57,6 +57,7 @@ for (const folder of commandFolders) {
 	}
 })();
 
+// change commands for the server.
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
 	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -72,6 +73,7 @@ for (const folder of commandFolders) {
 		}
 	}
 }
+// Catch errors from commands.
 client.on(Events.InteractionCreate, async interaction => {
 	if (!interaction.isChatInputCommand()) return;
 
