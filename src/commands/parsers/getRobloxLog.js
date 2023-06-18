@@ -101,6 +101,7 @@ module.exports = {
 				.setRequired(false),
 		),
 	async execute(interaction) {
+		await interaction.deferReply();
 		await interaction.editReply('Making logs, please stand-by.');
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		const users = interaction.options.getString('users').split(' ');
