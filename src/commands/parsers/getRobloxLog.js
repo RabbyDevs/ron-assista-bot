@@ -105,7 +105,7 @@ module.exports = {
 		),
 	async execute(interaction) {
 		await interaction.deferReply();
-		await interaction.editReply('Making logs, please stand-by!');
+		await interaction.editReply('Making log(s), please stand-by!');
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		// variables/arguments
 		const users = interaction.options.getString('users').split(' ');
@@ -140,7 +140,6 @@ module.exports = {
 		}
 		// basic command logic for multilog
 		if (multiMessage == true) {
-			await interaction.editReply('Creating multiple logs, please standby!');
 			multiLog();
 		}
 		else {
