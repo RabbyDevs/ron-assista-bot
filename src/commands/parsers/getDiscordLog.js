@@ -140,13 +140,13 @@ module.exports = {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 					const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
-					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]`);
+					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
 				}
 				else {
-					text += (isMobile == true ? `[<@${id}>:${id}]` : `[<\\@${id}>:${id}]`);
+					text += (isMobile == true ? `[<@${id}>:${id}]\n` : `[<\\@${id}>:${id}]\n`);
 				}
 			}
-			text += (note[0] ? `\n[${reason[0]}]\nNote: ${note[0]}` : `\n[${reason[0]}]`);
+			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
 			await interaction.followUp(text);
 			(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 		}
@@ -159,15 +159,15 @@ module.exports = {
 				if (type == 'Ban') {
 					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 					const robloxUser = await getUserFromRobloxId(await robloxId.catch(error => err(interaction, error)));
-					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]`);
-					text += `\n[${reason[reasonNumber]}]`;
+					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
+					text += `[${reason[reasonNumber]}]`;
 					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
 					await interaction.followUp(text);
 					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 				}
 				else {
-					text += (isMobile == true ? `[<@${id}>:${id}]` : `[<\\@${id}>:${id}]`);
-					text += `\n[${reason[reasonNumber]}]`;
+					text += (isMobile == true ? `[<@${id}>:${id}]\n` : `[<\\@${id}>:${id}]\n`);
+					text += `[${reason[reasonNumber]}]`;
 					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
 					await interaction.followUp(text);
 					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
