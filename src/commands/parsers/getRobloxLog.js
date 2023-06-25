@@ -101,8 +101,12 @@ module.exports = {
 			option
 				.setName('duration')
 				.setDescription('Duration of the mute, or Temporary Ban.')
-				.setRequired(false),
-		),
+				.setRequired(false))
+		.addBooleanOption(option =>
+			option
+				.setName('noingame')
+				.setDescription('Add a automatic note stating the action was not performed ingame?')
+				.setRequired(false)),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
@@ -111,7 +115,8 @@ module.exports = {
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
+		const noingame = interaction.options.getBoolean('noingame');
+		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : (noingame ? ['Action not taken ingame.'] : [undefined]));
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));

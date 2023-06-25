@@ -118,8 +118,7 @@ module.exports = {
 			option
 				.setName('duration')
 				.setDescription('Duration of the mute, or Temporary Ban.')
-				.setRequired(false),
-		),
+				.setRequired(false)),
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
