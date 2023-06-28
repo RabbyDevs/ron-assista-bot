@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const http = require('https');
 
 // helper function: error the command
@@ -87,6 +87,16 @@ module.exports = {
 				.setName('reason')
 				.setDescription('Reason for log can be split via |, split only works if multimessage is True.')
 				.setRequired(true))
+		.addBooleanOption(option =>
+			option
+				.setName('noingame')
+				.setDescription('Add a automatic note stating the action was not performed ingame?')
+				.setRequired(false))
+		.addStringOption(option =>
+			option
+				.setName('duration')
+				.setDescription('Duration of the mute, or Temporary Ban.')
+				.setRequired(false))
 		.addStringOption(option =>
 			option
 				.setName('note')
@@ -97,16 +107,7 @@ module.exports = {
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
 				.setRequired(false))
-		.addStringOption(option =>
-			option
-				.setName('duration')
-				.setDescription('Duration of the mute, or Temporary Ban.')
-				.setRequired(false))
-		.addBooleanOption(option =>
-			option
-				.setName('noingame')
-				.setDescription('Add a automatic note stating the action was not performed ingame?')
-				.setRequired(false)),
+		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
@@ -114,6 +115,7 @@ module.exports = {
 		// variables/arguments
 		const users = interaction.options.getString('users').split(' ');
 		const type = interaction.options.getString('type');
+		// const uncappedType = type.charAt(0).toLowerCase() + type.slice(1);
 		const reason = interaction.options.getString('reason').split('|');
 		const noingame = interaction.options.getBoolean('noingame');
 		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : (noingame ? ['Action not taken ingame.'] : [undefined]));

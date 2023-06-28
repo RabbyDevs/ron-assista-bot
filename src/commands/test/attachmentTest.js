@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -8,7 +8,8 @@ module.exports = {
 			option
 				.setName('attachment')
 				.setDescription('beepboopbapbappbapobao.')
-				.setRequired(true)),
+				.setRequired(true))
+		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		const attachment = await interaction.options.getAttachment('attachment');
 		console.log(await attachment.name);

@@ -4,7 +4,7 @@ const cacheFilepath = '/home/rabby/ron-assista-bot/src/cache.json';
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
-const { token, clientId, guildId } = require('/home/rabby/ron-assista-bot/config.json');
+const { token, clientId } = require('/home/rabby/ron-assista-bot/config.json');
 const { restart, lastInteractedChannel, user } = require(cacheFilepath);
 
 // Construct and prepare an instance of the REST module
@@ -45,7 +45,7 @@ for (const folder of commandFolders) {
 
 		// The put method is used to fully refresh all commands in the guild with the current set
 		const data = await rest.put(
-			Routes.applicationGuildCommands(clientId, guildId),
+			Routes.applicationCommands(clientId),
 			{ body: commands },
 		);
 

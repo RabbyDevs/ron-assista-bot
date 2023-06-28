@@ -1,12 +1,13 @@
 const fs = require('fs');
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 let json = {};
 const filepath = '/home/rabby/ron-assista-bot/src/cache.json';
 /* A way to update the bot in a simple command. */
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('restart')
-		.setDescription('Restart the bot, happens automatically if the bot errors!'),
+		.setDescription('Restart the bot, happens automatically if the bot errors!')
+		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		console.log(`Bot restart initiated by ${interaction.user.username}!`);
 		await interaction.deferReply();

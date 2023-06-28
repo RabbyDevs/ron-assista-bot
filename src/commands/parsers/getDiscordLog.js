@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const http = require('https');
 
 const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
@@ -106,6 +106,11 @@ module.exports = {
 				.setRequired(true))
 		.addStringOption(option =>
 			option
+				.setName('duration')
+				.setDescription('Duration of the mute, or Temporary Ban.')
+				.setRequired(false))
+		.addStringOption(option =>
+			option
 				.setName('note')
 				.setDescription('Extra notes, can be split via |, split only works if multimessage is True.')
 				.setRequired(false))
@@ -114,11 +119,7 @@ module.exports = {
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
 				.setRequired(false))
-		.addStringOption(option =>
-			option
-				.setName('duration')
-				.setDescription('Duration of the mute, or Temporary Ban.')
-				.setRequired(false)),
+		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
