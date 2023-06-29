@@ -1,6 +1,6 @@
 {
   "name": "ron-assista-bot",
-  "version": "1.2",
+  "version": "1.5",
   "description": "bot.",
   "main": "index.js",
   "scripts": {
