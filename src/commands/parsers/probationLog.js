@@ -152,7 +152,7 @@ module.exports = {
 				const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 				const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
 				let text = '';
-				text += `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n\n`;
+				text += `[<\\@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
 				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:D> - <t:${calculatedDurations[durationNumber + 2]}:D>)]`;
 				await interaction.followUp(text.replace('<\\@', '<@'));
