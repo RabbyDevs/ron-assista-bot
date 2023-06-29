@@ -154,7 +154,7 @@ module.exports = {
 				let text = '';
 				text += `[<\\@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
-				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:D> - <t:${calculatedDurations[durationNumber + 2]}:D>)]`;
+				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:f> - <t:${calculatedDurations[durationNumber + 2]}:f>)]`;
 				await interaction.followUp(text.replace('<\\@', '<@'));
 				(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
