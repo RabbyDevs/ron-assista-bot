@@ -63,7 +63,7 @@ async function getRobloxIdFromUser(robloxUserTable) {
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('getrobloxlog')
+		.setName('robloxlog')
 		.setDescription('Replies with a proper RON Log when given Discord User.')
 		.addStringOption(option =>
 			option

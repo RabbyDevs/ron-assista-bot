@@ -81,7 +81,7 @@ async function getUserFromRobloxId(robloxId) {
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('getdiscordlog')
+		.setName('discordlog')
 		.setDescription('Replies with a proper RON Log when given Discord User.')
 		.addStringOption(option =>
 			option
@@ -134,44 +134,30 @@ module.exports = {
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Mute' || type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		// make a single log from above arguments.
-		async function makeSingleLog() {
+		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
-				if (type == 'Ban') {
-					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
-					const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
-					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
-				}
-				else {
-					text += (isMobile == true ? `[<@${id}>:${id}]\n` : `[<\\@${id}>:${id}]\n`);
-				}
+				const robloxId = (type == 'Ban' ? await getRobloxId(id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error)) : undefined);
+				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
 			}
 			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
-			await interaction.followUp(text);
-			(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
+			await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
+			(isMobile == true ? await interaction.followUp(text.replace('<\\@', '<@')) : undefined);
 		}
 		// make a multiple msg log from arguments + table magic
 		async function multiLog() {
 			let reasonNumber = 0;
 			let noteNumber = 0;
 			for (const id of users) {
+				const robloxId = (type == 'Ban' ? await getRobloxId(id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error)) : undefined);
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-				if (type == 'Ban') {
-					const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
-					const robloxUser = await getUserFromRobloxId(await robloxId.catch(error => err(interaction, error)));
-					text += (isMobile == true ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n`);
-					text += `[${reason[reasonNumber]}]`;
-					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
-					await interaction.followUp(text);
-					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
-				}
-				else {
-					text += (isMobile == true ? `[<@${id}>:${id}]\n` : `[<\\@${id}>:${id}]\n`);
-					text += `[${reason[reasonNumber]}]`;
-					text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
-					await interaction.followUp(text);
-					(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
-				}
+				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
+				text += `[${reason[reasonNumber]}]`;
+				text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
+				await interaction.followUp((isMobile == true ? 'Desktop version of the log: text' + text : text));
+				(isMobile == true ? await interaction.followUp(text.replace('<\\@', '<@')) : undefined);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				note[noteNumber] = null;
 				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
@@ -182,7 +168,7 @@ module.exports = {
 			multiLog();
 		}
 		else {
-			makeSingleLog();
+			singleLog();
 		}
 		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
