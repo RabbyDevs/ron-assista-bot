@@ -164,12 +164,7 @@ module.exports = {
 			}
 		}
 		// command logic
-		if (multiMessage == true) {
-			multiLog();
-		}
-		else {
-			singleLog();
-		}
+		(multiMessage == true ? multiLog() : singleLog());
 		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

@@ -123,7 +123,7 @@ module.exports = {
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));
 		// make a single log, using the above arguments.
-		async function makeSingleLog() {
+		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const userData of robloxUsers.data) {
 				text += `[${userData.name}:${userData.id}]\n`;
@@ -146,12 +146,7 @@ module.exports = {
 			}
 		}
 		// basic command logic for multilog
-		if (multiMessage == true) {
-			multiLog();
-		}
-		else {
-			makeSingleLog();
-		}
+		(multiMessage == true ? multiLog() : singleLog());
 		console.log(`Command getrobloxlog started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };
