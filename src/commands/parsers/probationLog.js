@@ -6,7 +6,7 @@ const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
 
 // helper function: error the command
 async function err(interaction, error) {
-	await interaction.editReply({ content: `**There was an error while executing this command!**\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	await interaction.followUp({ content: `**There was an error while executing this command!**\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
 	throw error;
 }
 
@@ -98,17 +98,23 @@ module.exports = {
 				.setName('duration')
 				.setDescription('Duration of probation (only h, d, w, m are usable).')
 				.setRequired(true))
+		.addStringOption(option =>
+			option
+				.setName('timeformat')
+				.setDescription('Time format of probation (look up a guide on google, defaults to f).')
+				.setRequired(false))
 		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
-		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
+		const isMobile = (await interaction.user.presence.clientStatus.mobile ? true : false);
 		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log(s).') : await interaction.editReply('Making log(s), please stand-by!'));
 		console.log(`Command getdiscordlog begun on ${await getDate()[0]} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		// variables/arguments
 		const users = interaction.options.getString('ids').split(' ');
 		const reason = interaction.options.getString('reason').split('|');
 		const duration = interaction.options.getString('duration').split('|');
+		const timeFormat = (interaction.options.getString('timeFormat') ? interaction.options.getString('timeFormat').split(' ') : 'f');
 		// possibly split at a space, then parse by checking the ending letter against a dictionary of items?
 		// okk now checking how to check the last letter of a string :3
 		const calculatedDurations = [];
@@ -149,14 +155,18 @@ module.exports = {
 			let reasonNumber = 0;
 			let durationNumber = 0;
 			for (const id of users) {
+				// make a log
 				const robloxId = await getRobloxId(id).catch(error => err(interaction, error));
 				const robloxUser = await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error));
 				let text = '';
 				text += `[<\\@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
-				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:f> - <t:${calculatedDurations[durationNumber + 2]}:f>)]`;
-				await interaction.followUp(text.replace('<\\@', '<@'));
-				(isMobile == true ? await interaction.followUp('Desktop version of the log:\n' + text.replace('<@', '<\\@')) : undefined);
+				text += `[${calculatedDurations[durationNumber]}(<t\\:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t\\:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
+				await interaction.followUp((isMobile == true ? 'Desktop version of the log: text' + text : text));
+				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
+
+				// dm the user about their accepted appeal
+				await interaction.client.users.send(id, `Your appeal has been accepted!\nYou have been unbanned and are now able to rejoin the server.\n\nYou are currently on probation for ${calculatedDurations[durationNumber].replace(/.$/, '')}. (<t:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)\nNotify a staff member that you are on probation so you can receive the role!\n discord.gg/riseofnations`);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				durationNumber = durationNumber + 3;
 			}

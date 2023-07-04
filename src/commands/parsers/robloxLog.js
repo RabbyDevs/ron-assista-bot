@@ -4,7 +4,7 @@ const http = require('https');
 
 // helper function: error the command
 async function err(interaction, error) {
-	await interaction.editReply({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	await interaction.followUp({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
 	throw error;
 }
 
