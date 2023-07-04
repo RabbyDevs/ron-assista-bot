@@ -123,7 +123,7 @@ module.exports = {
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
-		const isMobile = (await interaction.user.presence.clientStatus.mobile ? true : false);
+		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
 		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log(s).') : await interaction.editReply('Making log(s), please stand-by!'));
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		// variables/arguments
