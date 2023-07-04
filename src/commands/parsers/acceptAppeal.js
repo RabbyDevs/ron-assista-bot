@@ -19,7 +19,7 @@ module.exports = {
 				.setName('reviewers')
 				.setDescription('IDs of the people who reviewed appeal(s). Separate with spaces.')
 				.setRequired(false))
-		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Sending accept messages to inputted user(s)...');

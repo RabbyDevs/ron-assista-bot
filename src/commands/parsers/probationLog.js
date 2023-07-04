@@ -103,7 +103,7 @@ module.exports = {
 				.setName('timeformat')
 				.setDescription('Time format of probation (look up a guide on google, defaults to f).')
 				.setRequired(false))
-		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
