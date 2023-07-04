@@ -23,7 +23,7 @@ module.exports = {
 
 		let reasonNumber = 0;
 		for (const id of users) {
-			await interaction.client.users.send(id, `Your appeal has been denied by ${await interaction.user.id}.\nReason - ${reason[reasonNumber]}`);
+			await interaction.client.users.send(id, `Your appeal has been denied by <@${await interaction.user.id}>.\nReason - ${reason[reasonNumber]}`);
 			reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 		}
 		await interaction.followUp('Done!');
