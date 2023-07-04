@@ -164,11 +164,8 @@ module.exports = {
 				text += `[${calculatedDurations[durationNumber]}(<t\\:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t\\:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
 				await interaction.followUp((isMobile == true ? 'Desktop version of the log: text' + text : text));
 				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
-
-				// dm the user about their accepted appeal
-				await interaction.client.users.send(id, `Your appeal has been accepted!\nYou have been unbanned and are now able to rejoin the server.\n\nYou are currently on probation for ${calculatedDurations[durationNumber].replace(/.$/, '')}. (<t:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)\nNotify a staff member that you are on probation so you can receive the role!\n discord.gg/riseofnations`);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
-				durationNumber = durationNumber + 3;
+				durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);
 			}
 		}
 		// command logic
