@@ -130,7 +130,7 @@ module.exports = {
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
 		const reason = interaction.options.getString('reason').split('|');
-		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : { undefined });
+		const notes = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : [undefined]);
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Mute' || type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		// make a single log from above arguments.
@@ -141,7 +141,7 @@ module.exports = {
 				const robloxUser = (type == 'Ban' ? await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error)) : undefined);
 				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
 			}
-			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
+			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
 			await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
 			(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
 		}
@@ -155,12 +155,11 @@ module.exports = {
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
 				text += `[${reason[reasonNumber]}]`;
-				text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
-				await interaction.followUp((isMobile == true ? 'Desktop version of the log: text' + text : text));
+				text += (notes[noteNumber] ? `\nNote: ${notes[noteNumber]}` : '');
+				await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
 				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
-				note[noteNumber] = null;
-				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
+				noteNumber = (notes[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
 		// command logic

@@ -162,7 +162,7 @@ module.exports = {
 				text += `[<\\@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
 				text += `[${calculatedDurations[durationNumber]}(<t\\:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t\\:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
-				await interaction.followUp((isMobile == true ? 'Desktop version of the log: text' + text : text));
+				await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
 				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);

@@ -118,7 +118,9 @@ module.exports = {
 		// const uncappedType = type.charAt(0).toLowerCase() + type.slice(1);
 		const reason = interaction.options.getString('reason').split('|');
 		const noingame = interaction.options.getBoolean('noingame');
-		const note = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : (noingame ? ['Action not taken ingame.'] : [undefined]));
+		const notes = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : [undefined]);
+		if (await noingame && notes !== undefined) {for (const noteID in notes) {notes[noteID] = 'Action not taken ingame. ' + notes[noteID];}}
+		(noingame !== undefined && notes == [undefined] ? notes[0] = 'Action not taken ingame.' : undefined);
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));
@@ -128,7 +130,7 @@ module.exports = {
 			for (const userData of robloxUsers.data) {
 				text += `[${userData.name}:${userData.id}]\n`;
 			}
-			text += (note[0] ? `[${reason[0]}]\nNote: ${note[0]}` : `[${reason[0]}]`);
+			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
 			await interaction.followUp(text);
 		}
 		// make multiple logs via arguments above and table magic
@@ -138,11 +140,10 @@ module.exports = {
 			for (const userData of robloxUsers.data) {
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 				text += `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
-				text += (note[noteNumber] ? `\nNote: ${note[noteNumber]}` : '');
+				text += (notes[noteNumber] ? `\nNote: ${notes[noteNumber]}` : '');
 				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
-				note[noteNumber] = null;
-				noteNumber = (note[noteNumber + 1] ? noteNumber + 1 : noteNumber);
+				noteNumber = (notes[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
 		}
 		// basic command logic for multilog
