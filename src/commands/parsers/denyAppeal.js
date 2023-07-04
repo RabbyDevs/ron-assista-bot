@@ -14,17 +14,25 @@ module.exports = {
 				.setName('reason')
 				.setDescription('Reason of denial, separate with "|".')
 				.setRequired(true))
+		.addStringOption(option =>
+			option
+				.setName('reviewers')
+				.setDescription('IDs of the people who reviewed appeal(s). Separate with spaces.')
+				.setRequired(false))
 		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Sending reject messages to inputted user(s)...');
 		const users = interaction.options.getString('ids').split(' ');
 		const reason = interaction.options.getString('reason').split('|');
+		const reviewers = (interaction.options.getString('reviewers') ? interaction.options.getString('reviewers').split(' ') : [await interaction.user.id]);
 
 		let reasonNumber = 0;
+		let reviewerNumber = 0;
 		for (const id of users) {
-			await interaction.client.users.send(id, `Your appeal has been denied by <@${await interaction.user.id}>.\nReason - ${reason[reasonNumber]}`);
+			await interaction.client.users.send(id, `Your appeal has been denied by <@${reviewers[reviewerNumber]}>.\nReason - ${reason[reasonNumber]}`);
 			reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
+			reviewerNumber = (reviewers[reviewerNumber + 1] ? reviewerNumber + 1 : reviewerNumber);
 		}
 		await interaction.followUp('Done!');
 	},
