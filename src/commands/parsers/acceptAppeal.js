@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { calculateDuration } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -27,38 +28,7 @@ module.exports = {
 		const duration = interaction.options.getString('duration').split('|');
 		const reviewers = (interaction.options.getString('reviewers') ? interaction.options.getString('reviewers').split(' ') : [await interaction.user.id]);
 
-		const calculatedDurations = [];
-		let durNumber = 0;
-		for (const dateID in duration) {
-			// epoch part
-			const dates = { 'h': 3600, 'd': 86400, 'w': 604800, 'm': 2629743 };
-			const date = (duration[dateID].replace(/ /gi, '') == 0 ? '0h' : duration[dateID].replace(/ /gi, ''));
-			const numbers = date.split(/[dwmh]/gi);
-			numbers.pop();
-			const letters = date.split(/[1234567890]/gi);
-			letters.shift();
-
-			const today = Date.now();
-			const todayEpoch = Math.floor(today / 1000);
-			let epoch = Math.floor(today / 1000);
-			for (const number in numbers) {
-				const combinedNumber = numbers[number] * dates[letters[number]];
-				epoch = epoch + combinedNumber;
-			}
-
-			// full duration part
-			const fullMonths = { 'h': 'Hour', 'd': 'Day', 'w': 'Week', 'm': 'Month' };
-			let fullDuration = '';
-			for (const letter in letters) {
-				let month = (numbers[letter] > 1 ? `${fullMonths[letters[letter]]}s` : `${fullMonths[letters[letter]]}`);
-				month += (letter == letters.length - 2 || letter == letters.length - 1 ? (letter == letters.length - 2 ? ' and' : '') : ',');
-				fullDuration += `${numbers[letter]} ${month} `;
-			}
-			calculatedDurations[durNumber + 1] = (date !== '0' ? todayEpoch : undefined);
-			calculatedDurations[durNumber + 2] = (date !== '0' ? epoch : undefined);
-			calculatedDurations[durNumber] = (date !== '0' ? fullDuration : undefined);
-			durNumber = durNumber + 3;
-		}
+		const calculatedDurations = calculateDuration(duration);
 
 		let reviewerNumber = 0;
 		let durationNumber = 0;

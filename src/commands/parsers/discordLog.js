@@ -1,83 +1,6 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const http = require('https');
-
-const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
-
-// helper function: error the command
-async function err(interaction, error) {
-	await interaction.followUp({ content: `**There was an error while executing this command!**\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
-	throw error;
-}
-
-// helper function: get the current date.
-async function getDate() {
-	const today = new Date();
-	const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-	const time = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
-	const dateTime = date + ' ' + time;
-	return dateTime;
-}
-
-// Gets the RobloxID of a discord user VIA bloxlink global api.
-async function getRobloxId(userId) {
-	const id = new Promise((resolve, reject) => {
-		http.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
-			headers: { 'Authorization': bloxlinkAPIKey },
-		}, (response) => {
-			const data = [];
-			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log(`Bloxlink GET request started by getRobloxId. Input is: ${userId}`);
-			console.log('Status Code:', response.statusCode);
-			console.log('Date in Response header:', headerDate);
-
-			response.on('data', chunk => {
-				data.push(chunk);
-			});
-
-			response.on('end', () => {
-				console.log(`Response ended in: ${data}`);
-				const obj = JSON.parse(data);
-				if (response.statusCode == 200) {
-					resolve(obj.robloxID);
-				}
-				else {
-					reject(obj.error);
-				}
-			});
-		});
-	});
-	return id;
-}
-
-// Gets the username from a Roblox ID via Roblox official API endpoints.
-async function getUserFromRobloxId(robloxId) {
-	const username = new Promise((resolve, reject) => {
-		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
-			const data = [];
-			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log('Roblox GET request started by getUserFromRobloxId!');
-			console.log('Status Code:', response.statusCode);
-			console.log('Date in Response header:', headerDate);
-
-			response.on('data', chunk => {
-				data.push(chunk);
-			});
-
-			response.on('end', () => {
-				console.log(`Response ended in: ${data}`);
-				const obj = JSON.parse(data);
-				if (obj.errors == undefined) {
-					resolve(obj.name);
-				}
-				else {
-					reject(obj.errors.message);
-				}
-			});
-		});
-	});
-	return username;
-}
+const { err, getDate, robloxUsertoID, bloxlinkID } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -137,8 +60,8 @@ module.exports = {
 		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
-				const robloxId = (type == 'Ban' ? await getRobloxId(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error)) : undefined);
+				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await robloxUsertoID(await robloxId).catch(error => err(interaction, error)) : undefined);
 				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
 			}
 			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
@@ -150,8 +73,8 @@ module.exports = {
 			let reasonNumber = 0;
 			let noteNumber = 0;
 			for (const id of users) {
-				const robloxId = (type == 'Ban' ? await getRobloxId(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await getUserFromRobloxId(await robloxId).catch(error => err(interaction, error)) : undefined);
+				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await robloxUsertoID(await robloxId).catch(error => err(interaction, error)) : undefined);
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
 				text += `[${reason[reasonNumber]}]`;

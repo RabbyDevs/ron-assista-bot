@@ -1,65 +1,6 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const http = require('https');
-
-// helper function: error the command
-async function err(interaction, error) {
-	await interaction.followUp({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
-	throw error;
-}
-
-// helper function: get the current date
-async function getDate() {
-	const today = new Date();
-	const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-	const time = today.getHours() + ':' + today.getMinutes() + ':' + today.getSeconds();
-	const dateTime = date + ' ' + time;
-	return dateTime;
-}
-
-// get the ID of multiple roblox users from their usernames.
-async function getRobloxIdFromUser(robloxUserTable) {
-	const postData = JSON.stringify({
-		'usernames': robloxUserTable,
-		'excludeBannedUsers': false,
-	});
-	const options = {
-		hostname: 'users.roblox.com',
-		method: 'POST',
-		path: '/v1/usernames/users',
-		protocol: 'https:',
-		headers: {
-			'accept': 'text/json',
-			'Content-Type': 'application/json',
-		},
-	};
-	const id = new Promise((resolve, reject) => {
-		const req = http.request(options, res => {
-			console.log('Roblox POST request started by getRobloxIdFromUser function!');
-			console.log(`STATUS: ${res.statusCode}`);
-			console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-			res.setEncoding('utf8');
-			const data = [];
-			res.on('data', (chunk) => {
-				data.push(chunk);
-			});
-			res.on('end', () => {
-				let resBody = JSON.parse(data);
-				switch (res.headers['content-type']) {
-				case 'text/json':
-					resBody = JSON.parse(resBody);
-					break;
-				}
-				resolve(resBody);
-			});
-		});
-		req.on('error', reject);
-		req.write(postData);
-		req.end();
-	});
-
-	return id;
-}
+const { err, getDate, robloxUsertoID } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -123,7 +64,7 @@ module.exports = {
 		(noingame !== undefined && notes == [undefined] ? notes[0] = 'Action not taken ingame.' : undefined);
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
-		const robloxUsers = await getRobloxIdFromUser(users).catch(error => err(interaction, error));
+		const robloxUsers = await robloxUsertoID(users).catch(error => err(interaction, error));
 		// make a single log, using the above arguments.
 		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
