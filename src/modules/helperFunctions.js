@@ -150,9 +150,9 @@ exports.calculateDuration = async function(duration) {
 			month += (letter == letters.length - 2 || letter == letters.length - 1 ? (letter == letters.length - 2 ? ' and' : '') : ',');
 			fullDuration += `${numbers[letter]} ${month} `;
 		}
+		calculatedDurations[durNumber] = fullDuration;
 		calculatedDurations[durNumber + 1] = todayEpoch;
 		calculatedDurations[durNumber + 2] = epoch;
-		calculatedDurations[durNumber] = fullDuration;
 		durNumber = durNumber + 3;
 	}
 	return calculatedDurations;
