@@ -28,7 +28,7 @@ module.exports = {
 		const duration = interaction.options.getString('duration').split('|');
 		const reviewers = (interaction.options.getString('reviewers') ? interaction.options.getString('reviewers').split(' ') : [await interaction.user.id]);
 
-		const calculatedDurations = calculateDuration(duration);
+		const calculatedDurations = await calculateDuration(duration);
 
 		let reviewerNumber = 0;
 		let durationNumber = 0;
@@ -39,7 +39,7 @@ module.exports = {
 You are currently on probation for ${calculatedDurations[durationNumber].replace(/.$/, '')}. (<t:${calculatedDurations[durationNumber + 1]}:f> - <t:${calculatedDurations[durationNumber + 2]}:f>)\nNotify a staff member that you are on probation so you can receive the role!\n
 You cannot apply for any official Rise of Nations position while on probation.
 If a warn or mute is given during probation, you will be immediately banned due to being on probation.
-Leaving the server during your Probation will pause it until you have returned.\n\n` : '');
+Leaving the server during your Probation will pause it until you have returned.\n\n` : '\n');
 			await interaction.client.users.send(id, `Your appeal has been accepted by <@${reviewers[reviewerNumber]}>!\nYou have been unbanned and are now able to rejoin the server.\n${probationString}discord.gg/riseofnations`);
 			durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);
 			reviewerNumber = (reviewers[reviewerNumber + 1] ? reviewerNumber + 1 : reviewerNumber);
