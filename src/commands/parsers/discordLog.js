@@ -60,7 +60,7 @@ module.exports = {
 			for (const id of users) {
 				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
 				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
-				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
+				text += (robloxId ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 			}
 			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
 			await interaction.followUp(text);
@@ -73,7 +73,7 @@ module.exports = {
 				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
 				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
+				text += (robloxId ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 				text += `[${reason[reasonNumber]}]`;
 				text += (notes[noteNumber] ? `\nNote: ${notes[noteNumber]}` : '');
 				await interaction.followUp(text);

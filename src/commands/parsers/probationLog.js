@@ -51,7 +51,7 @@ module.exports = {
 				let text = '';
 				text += `[<@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
-				text += `[${calculatedDurations[durationNumber]}(<t\\:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t\\:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
+				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
 				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);
