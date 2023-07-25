@@ -29,8 +29,7 @@ module.exports = {
 	async execute(interaction) {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
-		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
-		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log(s).') : await interaction.editReply('Making log(s), please stand-by!'));
+		await interaction.editReply('Making log(s), please stand-by!');
 		console.log(`Command getdiscordlog begun on ${await getDate()[0]} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		// variables/arguments
 		const users = interaction.options.getString('ids').split(' ');
@@ -50,11 +49,10 @@ module.exports = {
 				const robloxId = await bloxlinkID(id).catch(error => err(interaction, error));
 				const robloxUser = await robloxUsertoID(await robloxId).catch(error => err(interaction, error));
 				let text = '';
-				text += `[<\\@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
+				text += `[<@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
 				text += `[${calculatedDurations[durationNumber]}(<t\\:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t\\:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
-				await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
-				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
+				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);
 			}

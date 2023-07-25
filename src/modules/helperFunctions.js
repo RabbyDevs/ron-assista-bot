@@ -93,7 +93,7 @@ exports.bloxlinkID = async function(userId) {
 };
 
 // Gets the username from a Roblox ID via Roblox official API endpoints.
-exports.robloxUsertoID = async function(robloxId) {
+exports.robloxIDtoUser = async function(robloxId) {
 	const username = new Promise((resolve, reject) => {
 		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
 			const data = [];

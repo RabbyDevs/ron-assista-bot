@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID, bloxlinkID } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
+const { err, getDate, robloxUsertoID, bloxlinkID, robloxIDtoUser } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -45,9 +45,7 @@ module.exports = {
 		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
-		// detect if the user is on mobile on any platform:
-		const isMobile = (await interaction.member.presence.clientStatus.mobile ? true : false);
-		(isMobile == true ? await interaction.editReply('Mobile detected! Adding mobile friendly log(s).') : await interaction.editReply('Making log(s), please stand-by!'));
+		await interaction.editReply('Making log(s), please stand-by!');
 		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		// variables/arguments
 		const users = interaction.options.getString('ids').split(' ');
@@ -61,12 +59,11 @@ module.exports = {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
 				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await robloxUsertoID(await robloxId).catch(error => err(interaction, error)) : undefined);
-				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
+				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
+				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 			}
 			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
-			await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
-			(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
+			await interaction.followUp(text);
 		}
 		// make a multiple msg log from arguments + table magic
 		async function multiLog() {
@@ -74,13 +71,12 @@ module.exports = {
 			let noteNumber = 0;
 			for (const id of users) {
 				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await robloxUsertoID(await robloxId).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<\\@${id}>:${id}]\n`);
+				text += (robloxId ? `[<\\@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 				text += `[${reason[reasonNumber]}]`;
 				text += (notes[noteNumber] ? `\nNote: ${notes[noteNumber]}` : '');
-				await interaction.followUp((isMobile == true ? 'Desktop version of the log:\n' + text : text));
-				(isMobile == true ? await interaction.followUp(text.replace(/[\\]/gi, '')) : undefined);
+				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
 				noteNumber = (notes[noteNumber + 1] ? noteNumber + 1 : noteNumber);
 			}
