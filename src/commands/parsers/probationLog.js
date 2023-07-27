@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID, bloxlinkID, calculateDuration } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
+const { err, getDate, robloxUsertoID, bloxlinkID, calculateDuration, robloxIDtoUser } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -47,7 +47,7 @@ module.exports = {
 			for (const id of users) {
 				// make a log
 				const robloxId = await bloxlinkID(id).catch(error => err(interaction, error));
-				const robloxUser = await robloxUsertoID(await robloxId).catch(error => err(interaction, error));
+				const robloxUser = await robloxIDtoUser(await robloxId).catch(error => err(interaction, error));
 				let text = '';
 				text += `[<@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
