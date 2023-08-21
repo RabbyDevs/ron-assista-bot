@@ -59,7 +59,7 @@ exports.robloxUsertoID = async function(robloxUserTable) {
 	return id;
 };
 
-const { bloxlinkAPIKey } = require('/home/rabby/ron-assista-bot/config.json');
+const { bloxlinkAPIKey } = require('../../config.json');
 
 // Gets the RobloxID of a discord user VIA bloxlink global api.
 exports.bloxlinkID = async function(userId) {

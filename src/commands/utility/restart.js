@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 let json = {};
-const filepath = '/home/rabby/ron-assista-bot/src/cache.json';
+const filepath = '../../cache.json';
 /* A way to update the bot in a simple command. */
 module.exports = {
 	data: new SlashCommandBuilder()

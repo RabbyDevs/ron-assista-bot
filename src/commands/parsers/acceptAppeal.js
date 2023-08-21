@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { calculateDuration } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
+const { calculateDuration } = require('../../modules/helperFunctions');
 
 module.exports = {
 	data: new SlashCommandBuilder()

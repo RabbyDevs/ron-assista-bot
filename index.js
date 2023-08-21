@@ -1,10 +1,10 @@
 /* eslint-disable max-nested-callbacks */
 // Require the necessary discord.js classes
-const cacheFilepath = '/home/rabby/ron-assista-bot/src/cache.json';
+const cacheFilepath = './src/cache.json';
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
-const { token, clientId } = require('/home/rabby/ron-assista-bot/config.json');
+const { token, clientId } = require('./config.json');
 const { restart, lastInteractedChannel, user } = require(cacheFilepath);
 
 // Construct and prepare an instance of the REST module

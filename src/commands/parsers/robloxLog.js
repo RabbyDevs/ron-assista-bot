@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID } = require('/home/rabby/ron-assista-bot/src/modules/helperFunctions.js');
+const { err, getDate, robloxUsertoID } = require('../../modules/helperFunctions');
 
 module.exports = {
 	data: new SlashCommandBuilder()
