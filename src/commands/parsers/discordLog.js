@@ -19,6 +19,7 @@ module.exports = {
 				.setChoices(
 					{ name: 'Discord: Ban', value: 'Ban' },
 					{ name: 'Discord: Temporary Ban', value: 'Temporary Ban' },
+					{ name: 'Discord: Kick', value: 'Kick' },
 					{ name: 'Discord: Mute', value: 'Mute' },
 					{ name: 'Discord: Warn', value: 'Warn' },
 				))
