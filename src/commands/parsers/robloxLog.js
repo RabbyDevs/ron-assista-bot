@@ -58,13 +58,13 @@ module.exports = {
 		const type = interaction.options.getString('type');
 		// const uncappedType = type.charAt(0).toLowerCase() + type.slice(1);
 		const reason = interaction.options.getString('reason').split('|');
-		const noingame = interaction.options.getBoolean('noingame');
+		const noingame = (interaction.options.getBoolean('noingame') ? interaction.options.getBoolean('noingame') : false)
 		const notes = (interaction.options.getString('note') ? interaction.options.getString('note').split('|') : [undefined]);
-		if (await noingame && notes[0] !== undefined) {
+		if (await noingame !== false && notes[0] !== undefined) {
 			for (const noteID in notes) {
 				notes[noteID] = 'Action not taken ingame. ' + notes[noteID];
 			}}
-		(noingame !== undefined && notes[0] == undefined ? notes[0] = 'Action not taken ingame.' : undefined);
+		(noingame !== false && notes[0] == undefined ? notes[0] = 'Action not taken ingame.' : undefined);
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		const robloxUsers = await robloxUsertoID(users).catch(error => err(interaction, error));
