@@ -43,7 +43,7 @@ module.exports = {
 				.setName('multimessage')
 				.setDescription('Should the bot split logs into multiple messages if there are multiple users?')
 				.setRequired(false))
-		.setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+		.setDefaultMemberPermissions(PermissionFlagsBits.UseVAD),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
