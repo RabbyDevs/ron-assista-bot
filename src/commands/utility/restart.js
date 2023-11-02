@@ -7,7 +7,7 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('restart')
 		.setDescription('Restart the bot, happens automatically if the bot errors!')
-		.setDefaultMemberPermissions(PermissionFlagsBits.UseVAD),
+		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
 		console.log(`Bot restart initiated by ${interaction.user.username}!`);
 		await interaction.deferReply();

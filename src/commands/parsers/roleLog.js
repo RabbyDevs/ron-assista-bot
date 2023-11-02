@@ -15,7 +15,7 @@ module.exports = {
 				.setName('role')
 				.setDescription('The role your giving, seperate with |')
 				.setRequired(true))
-		.setDefaultMemberPermissions(PermissionFlagsBits.UseVAD),
+		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');

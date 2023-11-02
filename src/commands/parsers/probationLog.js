@@ -35,7 +35,7 @@ module.exports = {
 		const users = interaction.options.getString('ids').split(' ');
 		const reason = interaction.options.getString('reason').split('|');
 		const duration = interaction.options.getString('duration').split('|');
-		const timeFormat = (interaction.options.getString('timeFormat') ? interaction.options.getString('timeFormat').split(' ') : 'f');
+		const timeFormat = (interaction.options.getString('timeFormat') ? interaction.options.getString('timeFormat').split(' ') : 'D');
 		// possibly split at a space, then parse by checking the ending letter against a dictionary of items?
 		// okk now checking how to check the last letter of a string :3
 		const calculatedDurations = await calculateDuration(duration);
