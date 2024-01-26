@@ -131,6 +131,7 @@ dist
 
 # config
 config.json
+config.example.json
 
 # eslint
 .eslintrc.json
