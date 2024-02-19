@@ -7,6 +7,15 @@ module.exports = {
 		.setDescription('Replies with the probation log given a Discord ID or multiple.')
 		.addStringOption(option =>
 			option
+				.setName('type')
+				.setDescription('Type of infraction.')
+				.setRequired(true)
+				.setChoices(
+					{ name: 'Roblox', value: 'Roblox' },
+					{ name: 'Discord', value: 'Discord' },
+				))
+		.addStringOption(option =>
+			option
 				.setName('ids')
 				.setDescription('ID(s) to make log from, use a space to separate users.')
 				.setRequired(true))
@@ -32,6 +41,7 @@ module.exports = {
 		await interaction.editReply('Making log(s), please stand-by!');
 		console.log(`Command getdiscordlog begun on ${await getDate()[0]} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
 		// variables/arguments
+		const type = interaction.options.getString('type');
 		const users = interaction.options.getString('ids').split(' ');
 		const reason = interaction.options.getString('reason').split('|');
 		const duration = interaction.options.getString('duration').split('|');
@@ -49,6 +59,7 @@ module.exports = {
 				const robloxId = await bloxlinkID(id).catch(error => err(interaction, error));
 				const robloxUser = await robloxIDtoUser(await robloxId).catch(error => err(interaction, error));
 				let text = '';
+				text += `[${type} Ban]\n\n`
 				text += `[<@${id}> - ${id} - ${robloxUser}:${robloxId}]\n\n`;
 				text += `[${reason[reasonNumber]}]\n\n`;
 				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;
