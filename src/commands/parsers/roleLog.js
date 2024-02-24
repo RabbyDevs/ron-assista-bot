@@ -14,7 +14,27 @@ module.exports = {
 			option
 				.setName('role')
 				.setDescription('The role your giving, seperate with |')
-				.setRequired(true))
+				.setRequired(true)
+				.setChoices(
+					{ name: 'Dedicated Player', value: 'Dedicated Player' },
+					{ name: 'Collector', value: 'Collector' },
+					{ name: 'Grandmaster', value: 'Grandmaster' },
+					{ name: 'Gamebanned', value: 'Gamebanned' },
+					{ name: 'VIP Blacklist', value: 'VIP Blacklist' },
+					{ name: 'Debate Blacklist', value: 'Debate Blacklist' },
+					{ name: 'Event Blacklist', value: 'Event Blacklist' },
+					{ name: 'Suggestion Blacklist', value: 'Suggestion Blacklist' },
+					{ name: 'VC Blackist', value: 'VC Blacklist' },
+					{ name: 'Application Blacklist', value: 'Application Blacklist' },
+					{ name: 'Creations Blacklist', value: 'Creations Blacklist' },
+					{ name: 'Wiki Blacklist', value: 'Wiki Blacklist' },
+					{ name: 'Challenges Blacklist', value: 'Challenges Blacklist' },
+					{ name: 'Strategies Blacklist', value: 'Strategies Blacklist' },
+					{ name: 'Ticket Blacklist', value: 'Ticket Blacklist' },
+					{ name: 'Feedback Blacklist', value: 'Feedback Blacklist' },
+					{ name: 'Gamebot Blacklist', value: 'Gamebot Blacklist' },
+					{ name: 'Trusted VIP Host', value: 'Trusted VIP Host' },
+				))
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
 		await interaction.deferReply();
