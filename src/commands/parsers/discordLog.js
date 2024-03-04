@@ -59,8 +59,8 @@ module.exports = {
 		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const id of users) {
-				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
+				const robloxId = (type == 'Ban' ? await bloxlinkID(interaction, id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(interaction, await robloxId).catch(error => err(interaction, error)) : undefined);
 				text += (robloxId ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 			}
 			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
@@ -71,8 +71,8 @@ module.exports = {
 			let reasonNumber = 0;
 			let noteNumber = 0;
 			for (const id of users) {
-				const robloxId = (type == 'Ban' ? await bloxlinkID(id).catch(error => err(interaction, error)) : undefined);
-				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(await robloxId).catch(error => err(interaction, error)) : undefined);
+				const robloxId = (type == 'Ban' ? await bloxlinkID(interaction, id).catch(error => err(interaction, error)) : undefined);
+				const robloxUser = (type == 'Ban' ? await robloxIDtoUser(interaction, await robloxId).catch(error => err(interaction, error)) : undefined);
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 				text += (robloxId ? `[<@${id}>:${id}:${robloxUser}:${robloxId}]\n` : `[<@${id}>:${id}]\n`);
 				text += `[${reason[reasonNumber]}]`;

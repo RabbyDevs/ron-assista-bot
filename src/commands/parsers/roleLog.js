@@ -44,8 +44,8 @@ module.exports = {
 
 		let roleNumber = 0;
 		for (const id of users) {
-            const robloxId = await bloxlinkID(id).catch(error => err(interaction, error))
-            const robloxUser = await robloxIDtoUser(await robloxId).catch(error => err(interaction, error))
+            const robloxId = await bloxlinkID(interaction, id).catch(error => err(interaction, error))
+            const robloxUser = await robloxIDtoUser(interaction, await robloxId).catch(error => err(interaction, error))
             await interaction.followUp(`<@${id}>:${id}:${robloxUser}:${robloxId}\n\n${role[roleNumber]}`)
 			roleNumber = (role[roleNumber + 1] ? roleNumber + 1 : roleNumber);
 		}

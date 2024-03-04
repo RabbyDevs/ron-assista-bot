@@ -7,16 +7,23 @@ exports.getDate = async function() {
 	return dateTime;
 };
 
+async function err(interaction, error) {
+	if (error == 'User not found') error = 'User was not found in Bloxlink\'s database, are you sure the user you inputted is registered with Bloxlink?'
+	await interaction.followUp({ content: `There was an error while executing this command!\nPing Rabby if issue persists.\n\n\\- Error -\n${error}` });
+	throw error;
+};
 // helper function: error the command
 exports.err = async function(interaction, error) {
-	await interaction.followUp({ content: `There was an error while executing this command!\n<@744076526831534091> Error:\n${error}`, ephemeral: true });
+	if (error == 'User not found') error = 'User was not found in Bloxlink\'s database, are you sure the user you inputted is registered with Bloxlink?'
+	await interaction.followUp({ content: `There was an error while executing this command!\nPing Rabby if issue persists.\n\n\\- Error -\n${error}` });
 	throw error;
 };
 
 const http = require('https');
 
 // get the ID of multiple roblox users from their usernames.
-exports.robloxUsertoID = async function(robloxUserTable) {
+exports.robloxUsertoID = async function(interaction, robloxUserTable) {
+	console.log(robloxUserTable)
 	const postData = JSON.stringify({
 		'usernames': robloxUserTable,
 		'excludeBannedUsers': false,
@@ -31,7 +38,9 @@ exports.robloxUsertoID = async function(robloxUserTable) {
 			'Content-Type': 'application/json',
 		},
 	};
+	let fail = false
 	const id = new Promise((resolve, reject) => {
+		if (robloxUserTable[0] == undefined) {reject('Undefined User'); return}
 		const req = http.request(options, res => {
 			console.log('Roblox POST request started by robloxUsertoID function!');
 			console.log(`STATUS: ${res.statusCode}`);
@@ -45,24 +54,31 @@ exports.robloxUsertoID = async function(robloxUserTable) {
 				let resBody = JSON.parse(data);
 				switch (res.headers['content-type']) {
 				case 'text/json':
+					console.log('aw')
 					resBody = JSON.parse(resBody);
 					break;
 				}
-				resolve(resBody);
+				if (resBody.data[0] == undefined) {
+					console.log(resBody.data)
+					reject('User ID not found.')
+					return
+				}
+				resolve(resBody.data[0].id);
 			});
 		});
 		req.on('error', reject);
 		req.write(postData);
 		req.end();
-	});
-
+	}).catch(error => {
+		err(interaction, `A error occured with converting Roblox USER to ID.\n${error}`)
+	})
 	return id;
 };
 
 const { bloxlinkAPIKey } = require('../../config.json');
 
 // Gets the RobloxID of a discord user VIA bloxlink global api.
-exports.bloxlinkID = async function(userId) {
+exports.bloxlinkID = async function(interaction, userId) {
 	const id = new Promise((resolve, reject) => {
 		http.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
 			headers: { 'Authorization': bloxlinkAPIKey },
@@ -88,13 +104,16 @@ exports.bloxlinkID = async function(userId) {
 				}
 			});
 		});
-	});
+	}).catch(error => {
+		err(interaction, `${error}`)
+	})
 	return id;
 };
 
 // Gets the username from a Roblox ID via Roblox official API endpoints.
-exports.robloxIDtoUser = async function(robloxId) {
+exports.robloxIDtoUser = async function(interaction, robloxId) {
 	const username = new Promise((resolve, reject) => {
+		if (robloxId == undefined) reject('One Roblox ID was invalid.')
 		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
 			const data = [];
 			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
@@ -117,7 +136,9 @@ exports.robloxIDtoUser = async function(robloxId) {
 				}
 			});
 		});
-	});
+	}).catch(error => {
+		err(interaction, `A error occured with converting Roblox ID to USER.\n${error}`)
+	})
 	return username;
 };
 

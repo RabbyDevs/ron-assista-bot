@@ -1,16 +1,11 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID } = require('../../modules/helperFunctions');
+const { err, getDate, robloxUsertoID, robloxIDtoUser } = require('../../modules/helperFunctions');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('robloxlog')
 		.setDescription('Replies with a proper RON Log when given Discord User.')
-		.addStringOption(option =>
-			option
-				.setName('users')
-				.setDescription('User(s) to make log from, use a space to separate users.')
-				.setRequired(true))
 		.addStringOption(option =>
 			option
 				.setName('type')
@@ -28,6 +23,16 @@ module.exports = {
 				.setName('reason')
 				.setDescription('Reason for log can be split via |, split only works if multimessage is True.')
 				.setRequired(true))
+		.addStringOption(option =>
+			option
+				.setName('roblox-ids')
+				.setDescription('Roblox ID(s) to make log from, use a space to separate users.')
+				.setRequired(false))
+		.addStringOption(option =>
+			option
+				.setName('roblox-users')
+				.setDescription('Roblox usernames(s) to make log from, use a space to separate users.')
+				.setRequired(false))
 		.addBooleanOption(option =>
 			option
 				.setName('noingame')
@@ -54,7 +59,10 @@ module.exports = {
 		await interaction.editReply('Making log(s), please stand-by!');
 		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
 		// variables/arguments
-		const users = interaction.options.getString('users').split(' ');
+		const roblox_ids = (interaction.options.getString('roblox-ids') ? interaction.options.getString('roblox-ids').split(' ') : []);
+		const roblox_users = (interaction.options.getString('roblox-users') ? interaction.options.getString('roblox-users').split(' ') : []);
+		for (const id of roblox_ids) {roblox_users.push(await robloxIDtoUser(interaction, id))}
+		console.log(roblox_users)
 		const type = interaction.options.getString('type');
 		// const uncappedType = type.charAt(0).toLowerCase() + type.slice(1);
 		const reason = interaction.options.getString('reason').split('|');
@@ -67,12 +75,11 @@ module.exports = {
 		(noingame !== false && notes[0] == undefined ? notes[0] = 'Action not taken ingame.' : undefined);
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
-		const robloxUsers = await robloxUsertoID(users).catch(error => err(interaction, error));
 		// make a single log, using the above arguments.
 		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-			for (const userData of robloxUsers.data) {
-				text += `[${userData.name}:${userData.id}]\n`;
+			for (const user of roblox_users) {
+				text += `[${user}:${await robloxUsertoID(interaction, [user])}]\n`;
 			}
 			text += (notes[0] ? `[${reason[0]}]\nNote: ${notes[0]}` : `[${reason[0]}]`);
 			await interaction.followUp(text);
@@ -81,9 +88,9 @@ module.exports = {
 		async function multiLog() {
 			let reasonNumber = 0;
 			let noteNumber = 0;
-			for (const userData of robloxUsers.data) {
+			for (const user of roblox_users) {
 				let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
-				text += `[${userData.name}:${userData.id}]\n[${reason[reasonNumber]}]`;
+				text += `[${user}:${await robloxUsertoID(interaction, [user])}]\n[${reason[reasonNumber]}]`;
 				text += (notes[noteNumber] ? `\nNote: ${notes[noteNumber]}` : '');
 				await interaction.followUp(text);
 				reasonNumber = (reason[reasonNumber + 1] ? reasonNumber + 1 : reasonNumber);
