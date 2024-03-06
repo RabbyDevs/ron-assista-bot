@@ -44,7 +44,7 @@ module.exports = {
             interaction.channel.send('\\- Description -')
             interaction.channel.send(information.description)
             interaction.channel.send('\\- Account Creation Date -')
-            interaction.channel.send(`<t:${Math.round(Date.parse(information.created))}:D>`)
+            interaction.channel.send(`<t:${Math.round(Date.parse(information.created)/1000)}:D>`)
         }
 		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
