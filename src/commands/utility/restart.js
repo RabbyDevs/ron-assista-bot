@@ -1,6 +1,7 @@
 const fs = require('fs');
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const filepath = '../../cache.json';
+const { getDate } = require('../../modules/helperFunctions.js')
 /* A way to update the bot in a simple command. */
 module.exports = {
 	data: new SlashCommandBuilder()
