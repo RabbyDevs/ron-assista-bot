@@ -47,7 +47,7 @@ module.exports = {
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
-		console.log(`Command getdiscordlog begun on ${await getDate()} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		// variables/arguments
 		const users = interaction.options.getString('ids').split(' ');
 		const type = interaction.options.getString('type');
@@ -84,6 +84,6 @@ module.exports = {
 		}
 		// command logic
 		(multiMessage == true ? multiLog() : singleLog());
-		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()}`);
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

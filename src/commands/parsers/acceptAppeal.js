@@ -22,6 +22,7 @@ module.exports = {
 				.setRequired(false))
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 	async execute(interaction) {
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		await interaction.deferReply();
 		await interaction.editReply('Sending accept messages to inputted user(s)...');
 		const users = interaction.options.getString('ids').split(' ');
@@ -45,5 +46,6 @@ Leaving the server during your Probation will pause it until you have returned.\
 			reviewerNumber = (reviewers[reviewerNumber + 1] ? reviewerNumber + 1 : reviewerNumber);
 		}
 		await interaction.followUp('Done!');
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

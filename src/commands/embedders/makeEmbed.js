@@ -21,6 +21,7 @@ module.exports = {
 				.setRequired(true))
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
+        console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		await interaction.deferReply();
 		await interaction.editReply('Making and sending embeds...');
 		const titles = interaction.options.getString('title').split('|');
@@ -97,5 +98,6 @@ module.exports = {
         forLoop().then(async returned => {
             await interaction.followUp(returned)
         })
+        console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

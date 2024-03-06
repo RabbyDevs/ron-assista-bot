@@ -37,6 +37,7 @@ module.exports = {
 				))
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
 		const users = interaction.options.getString('ids').split(' ');
@@ -49,5 +50,6 @@ module.exports = {
             await interaction.followUp(`<@${id}>:${id}:${robloxUser}:${robloxId}\n\n${role[roleNumber]}`)
 			roleNumber = (role[roleNumber + 1] ? roleNumber + 1 : roleNumber);
 		}
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

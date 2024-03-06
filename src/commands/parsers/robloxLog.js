@@ -57,12 +57,11 @@ module.exports = {
 	async execute(interaction) {
 		await interaction.deferReply();
 		await interaction.editReply('Making log(s), please stand-by!');
-		console.log(`Command getrobloxlog begun on ${await getDate()} by ${interaction.user.username}.`);
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		// variables/arguments
 		const roblox_ids = (interaction.options.getString('roblox-ids') ? interaction.options.getString('roblox-ids').split(' ') : []);
 		const roblox_users = (interaction.options.getString('roblox-users') ? interaction.options.getString('roblox-users').split(' ') : []);
-		for (const id of roblox_ids) {roblox_users.push(await robloxIDtoUser(interaction, id))}
-		console.log(roblox_users)
+		for (const id of roblox_ids) roblox_users.push(await robloxIDtoUser(interaction, id))
 		const type = interaction.options.getString('type');
 		// const uncappedType = type.charAt(0).toLowerCase() + type.slice(1);
 		const reason = interaction.options.getString('reason').split('|');
@@ -99,6 +98,6 @@ module.exports = {
 		}
 		// basic command logic for multilog
 		(multiMessage == true ? multiLog() : singleLog());
-		console.log(`Command getrobloxlog started by ${interaction.user.username} ended on ${await getDate()}`);
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

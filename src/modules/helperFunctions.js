@@ -142,6 +142,42 @@ exports.robloxIDtoUser = async function(interaction, robloxId) {
 	return username;
 };
 
+// Gets the username from a Roblox ID via Roblox official API endpoints.
+exports.robloxInfoFromID = async function(interaction, robloxId) {
+	const username = new Promise((resolve, reject) => {
+		if (robloxId == undefined) reject('One Roblox ID was invalid.')
+		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
+			const data = [];
+			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
+			console.log('Roblox GET request started by robloxUserfromID!');
+			console.log('Status Code:', response.statusCode);
+			console.log('Date in Response header:', headerDate);
+
+			response.on('data', chunk => {
+				data.push(chunk);
+			});
+
+			response.on('end', () => {
+				console.log(`Response ended in: ${data}`);
+				const obj = JSON.parse(data);
+				if (obj.errors == undefined) {
+					resolve(obj);
+				}
+				else {
+					reject(obj.errors.message);
+				}
+			});
+		});
+	}).catch(error => {
+		err(interaction, `A error occured with converting Roblox ID to USER [DETAILED VERSION].\n${error}`)
+	})
+	return username;
+};
+
+exports.delay = (delayInms) => {
+	return new Promise(resolve => setTimeout(resolve, delayInms));
+  };
+
 // duration calculation
 exports.calculateDuration = async function(duration) {
 	const calculatedDurations = [];

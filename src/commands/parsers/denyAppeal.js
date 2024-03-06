@@ -21,6 +21,7 @@ module.exports = {
 				.setRequired(false))
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 	async execute(interaction) {
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		await interaction.deferReply();
 		await interaction.editReply('Sending reject messages to inputted user(s)...');
 		const users = interaction.options.getString('ids').split(' ');
@@ -35,5 +36,6 @@ module.exports = {
 			reviewerNumber = (reviewers[reviewerNumber + 1] ? reviewerNumber + 1 : reviewerNumber);
 		}
 		await interaction.followUp('Done!');
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };

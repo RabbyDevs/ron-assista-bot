@@ -49,7 +49,7 @@ module.exports = {
 		await interaction.deferReply();
 		// detect if the user is on mobile on any platform:
 		await interaction.editReply('Making log(s), please stand-by!');
-		console.log(`Command getdiscordlog begun on ${await getDate()[0]} by ${interaction.user.username}, with parameters: ${interaction.options.getString('ids')}, ${interaction.options.getString('type')}, ${interaction.options.getString('reason')}, ${interaction.options.getString('note')}, ${interaction.options.getBoolean('multimessage')}.`);
+		console.log(`Command ${interaction.commandName} begun on ${await getDate()} by ${interaction.user.username}.`);
 		// variables/arguments
 		const type = interaction.options.getString('type');
 		const discord_ids = (interaction.options.getString('discord-ids') ? interaction.options.getString('discord-ids').split(' ') : []);
@@ -99,6 +99,6 @@ module.exports = {
 		}
 		// command logic
 		multiLog();
-		console.log(`Command getdiscordlog started by ${interaction.user.username} ended on ${await getDate()[0]}`);
+		console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
 	},
 };
