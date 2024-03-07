@@ -32,17 +32,17 @@ module.exports = {
 				.setName('badge-info')
 				.setDescription('Should the bot retrieve badge info?')
 				.setRequired(false))
-		.addIntegerOption(option =>
-			option
-				.setName('inventory-max-iterations')
-				.setDescription('Maximum number of iterations to do when doing inventory info, maximum of 10.')
-				.setRequired(false)
-				.setMaxValue(10))
-		.addBooleanOption(option =>
-			option
-				.setName('inventory-info')
-				.setDescription('Should the bot retrieve inventory info?')
-				.setRequired(false))
+		// .addIntegerOption(option =>
+		// 	option
+		// 		.setName('inventory-max-iterations')
+		// 		.setDescription('Maximum number of iterations to do when doing inventory info, maximum of 10.')
+		// 		.setRequired(false)
+		// 		.setMaxValue(10))
+		// .addBooleanOption(option =>
+		// 	option
+		// 		.setName('inventory-info')
+		// 		.setDescription('Should the bot retrieve inventory info?')
+		// 		.setRequired(false))
 		
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
