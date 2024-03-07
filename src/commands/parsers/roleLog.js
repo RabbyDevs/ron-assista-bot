@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID, bloxlinkID, calculateDuration, robloxIDtoUser } = require('../../modules/helperFunctions.js');
+const { err, getDate, bloxlinkID, robloxIDtoUser } = require('../../modules/helperFunctions.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()

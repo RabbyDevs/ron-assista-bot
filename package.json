@@ -9,11 +9,7 @@
   "author": "rabby",
   "license": "GPL-3.0",
   "dependencies": {
-    "7": "^0.0.1",
-    "discord.js": "^14.9.0",
-    "http": "^0.0.1-security",
-    "package.json": "^2.0.1",
-    "pm2": "^5.3.0",
-    "uuid": "^9.0.0"
+    "axios": "^1.6.7",
+    "discord.js": "^14.9.0"
   }
 }

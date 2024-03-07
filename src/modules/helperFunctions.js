@@ -1,3 +1,4 @@
+const axios = require('axios');
 // helper function: get the current date
 exports.getDate = async function() {
 	const today = new Date();
@@ -19,160 +20,131 @@ exports.err = async function(interaction, error) {
 	throw error;
 };
 
-const http = require('https');
-
 // get the ID of multiple roblox users from their usernames.
 exports.robloxUsertoID = async function(interaction, robloxUserTable) {
-	console.log(robloxUserTable)
-	const postData = JSON.stringify({
+	const response = await axios.post('https://users.roblox.com/v1/usernames/users', {
 		'usernames': robloxUserTable,
 		'excludeBannedUsers': false,
-	});
-	const options = {
-		hostname: 'users.roblox.com',
-		method: 'POST',
-		path: '/v1/usernames/users',
-		protocol: 'https:',
-		headers: {
-			'accept': 'text/json',
-			'Content-Type': 'application/json',
-		},
-	};
-	let fail = false
-	const id = new Promise((resolve, reject) => {
-		if (robloxUserTable[0] == undefined) {reject('Undefined User'); return}
-		const req = http.request(options, res => {
-			console.log('Roblox POST request started by robloxUsertoID function!');
-			console.log(`STATUS: ${res.statusCode}`);
-			console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-			res.setEncoding('utf8');
-			const data = [];
-			res.on('data', (chunk) => {
-				data.push(chunk);
-			});
-			res.on('end', () => {
-				let resBody = JSON.parse(data);
-				switch (res.headers['content-type']) {
-				case 'text/json':
-					console.log('aw')
-					resBody = JSON.parse(resBody);
-					break;
-				}
-				if (resBody.data[0] == undefined) {
-					console.log(resBody.data)
-					reject('User ID not found.')
-					return
-				}
-				resolve(resBody.data[0].id);
-			});
-		});
-		req.on('error', reject);
-		req.write(postData);
-		req.end();
-	}).catch(error => {
-		err(interaction, `A error occured with converting Roblox USER to ID.\n${error}`)
 	})
-	return id;
+	if (response.data.data == undefined) {
+		err(`A error occured with converting Roblox USER to ID.`)
+		return
+	} else {
+		for (const id in response.data.data[0]) {
+			if (id == 'id') return response.data.data[0][id]
+		}
+	}
 };
 
 const { bloxlinkAPIKey } = require('../../config.json');
 
 // Gets the RobloxID of a discord user VIA bloxlink global api.
 exports.bloxlinkID = async function(interaction, userId) {
-	const id = new Promise((resolve, reject) => {
-		http.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
-			headers: { 'Authorization': bloxlinkAPIKey },
-		}, (response) => {
-			const data = [];
-			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log(`Bloxlink GET request started by robloxID. Input is: ${userId}`);
-			console.log('Status Code:', response.statusCode);
-			console.log('Date in Response header:', headerDate);
-
-			response.on('data', chunk => {
-				data.push(chunk);
-			});
-
-			response.on('end', () => {
-				console.log(`Response ended in: ${data}`);
-				const obj = JSON.parse(data);
-				if (response.statusCode == 200) {
-					resolve(obj.robloxID);
-				}
-				else {
-					reject(obj.error);
-				}
-			});
-		});
-	}).catch(error => {
-		err(interaction, `${error}`)
+	if (userId == undefined) err(interaction, 'One User ID was invalid.')
+	const response = await axios.get(`https://api.blox.link/v4/public/discord-to-roblox/${userId}`, {
+		headers: {
+			'Authorization': bloxlinkAPIKey
+		}
 	})
-	return id;
+	if (response.data.error == undefined) {
+		return response.data.robloxID;
+	}
+	else {
+		err(interaction, response.data.error);
+	}
 };
 
 // Gets the username from a Roblox ID via Roblox official API endpoints.
-exports.robloxIDtoUser = async function(interaction, robloxId) {
-	const username = new Promise((resolve, reject) => {
-		if (robloxId == undefined) reject('One Roblox ID was invalid.')
-		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
-			const data = [];
-			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log('Roblox GET request started by robloxUserfromID!');
-			console.log('Status Code:', response.statusCode);
-			console.log('Date in Response header:', headerDate);
-
-			response.on('data', chunk => {
-				data.push(chunk);
-			});
-
-			response.on('end', () => {
-				console.log(`Response ended in: ${data}`);
-				const obj = JSON.parse(data);
-				if (obj.errors == undefined) {
-					resolve(obj.name);
-				}
-				else {
-					reject(obj.errors.message);
-				}
-			});
-		});
-	}).catch(error => {
-		err(interaction, `A error occured with converting Roblox ID to USER.\n${error}`)
-	})
+exports.robloxIDtoUser = async function(interaction, robloxID) {
+	if (robloxID == undefined) err(interaction, 'One Roblox ID was invalid.')
+	const response = await axios.get(`https://users.roblox.com/v1/users/${robloxID}`)
+	if (response.data.errors == undefined) {
+		return response.data.name;
+	}
+	else {
+		err(interaction, response.data.errors.message);
+	}
 	return username;
 };
 
 // Gets the username from a Roblox ID via Roblox official API endpoints.
-exports.robloxInfoFromID = async function(interaction, robloxId) {
-	const username = new Promise((resolve, reject) => {
-		if (robloxId == undefined) reject('One Roblox ID was invalid.')
-		http.get(`https://users.roblox.com/v1/users/${robloxId}`, (response) => {
-			const data = [];
-			const headerDate = response.headers && response.headers.date ? response.headers.date : 'no response date';
-			console.log('Roblox GET request started by robloxUserfromID!');
-			console.log('Status Code:', response.statusCode);
-			console.log('Date in Response header:', headerDate);
-
-			response.on('data', chunk => {
-				data.push(chunk);
-			});
-
-			response.on('end', () => {
-				console.log(`Response ended in: ${data}`);
-				const obj = JSON.parse(data);
-				if (obj.errors == undefined) {
-					resolve(obj);
-				}
-				else {
-					reject(obj.errors.message);
-				}
-			});
-		});
-	}).catch(error => {
-		err(interaction, `A error occured with converting Roblox ID to USER [DETAILED VERSION].\n${error}`)
-	})
-	return username;
+exports.robloxInfoFromID = async function(interaction, robloxID) {
+	if (robloxID == undefined) err(interaction, 'One Roblox ID was invalid.')
+	const response = await axios.get(`https://users.roblox.com/v1/users/${robloxID}`)
+	if (response.data.errors == undefined) {
+		return response.data;
+	}
+	else {
+		err(interaction, response.data.errors.message);
+	}
 };
+
+exports.robloxFriendCountFromID = async function(interaction, robloxID) {
+	if (robloxID == undefined) err(interaction, 'One Roblox ID was invalid.')
+	const response = await axios.get(`https://friends.roblox.com/v1/users/${robloxID}/friends`)
+	if (response.data.errors == undefined) {
+		return Object.keys(response.data.data).length;
+	}
+	else {
+		err(interaction, response.data.errors.message);
+	}
+};
+
+exports.robloxGroupCountFromID = async function(interaction, robloxID) {
+	if (robloxID == undefined) err(interaction, 'One Roblox ID was invalid.')
+	const response = await axios.get(`https://groups.roblox.com/v2/users/${robloxID}/groups/roles?includeLocked=true`)
+	if (response.data.errors == undefined) {
+		return Object.keys(response.data.data).length;
+	}
+	else {
+		err(interaction, response.data.errors.message);
+	}
+};
+
+exports.badgeInfoFromID = async function(interaction, robloxID, iterations) {
+	if (robloxID == undefined) err(interaction, 'One Roblox ID was invalid.')
+	let badgeCount = 0
+	let totalWinRate = 0
+	let winRate = 0
+	let welcomeBadgeCount = 0
+	let nextCursor = null
+	const regex = /Welcome|Join|visit|play/gi
+	let awarders = {}
+	let getIternations = 0
+	do {
+		const response = await axios.get((nextCursor !== null ? `https://badges.roblox.com/v1/users/${robloxID}/badges?limit=100&sortOrder=Asc&cursor=${nextCursor}` : `https://badges.roblox.com/v1/users/${robloxID}/badges?limit=100&sortOrder=Asc`))
+		if (response.data.errors == undefined) {
+			badgeCount += Object.keys(response.data.data).length
+			nextCursor = response.data.nextPageCursor
+			for (const badgeData of response.data.data) {
+				totalWinRate += badgeData.statistics.winRatePercentage
+				if (regex.test(badgeData.name) == true) {
+					welcomeBadgeCount += 1		
+				}
+				(awarders[`${badgeData.awarder.id}`] ? awarders[`${badgeData.awarder.id}`] += 1 : awarders[`${badgeData.awarder.id}`] = 1)
+			}
+			winRate = (totalWinRate*100)/badgeCount
+			getIternations += 1
+		}
+		else {
+			err(interaction, response.data.errors.message);
+		}
+		if (getIternations >= iterations || getIternations >= 10) nextCursor = null
+	}
+	while (nextCursor !== null)
+
+	// Create items array
+	const sortedAwarders = Object.keys(awarders).map(function(key) {
+		return [key, awarders[key]];
+	});
+	  
+	  // Sort the array based on the second element
+	  sortedAwarders.sort(function(first, second) {
+		return second[1] - first[1];
+	});
+	return [badgeCount, `${Math.round(winRate)}%`, welcomeBadgeCount, sortedAwarders]
+
+}
 
 exports.delay = (delayInms) => {
 	return new Promise(resolve => setTimeout(resolve, delayInms));

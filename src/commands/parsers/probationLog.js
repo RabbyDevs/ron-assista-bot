@@ -64,14 +64,17 @@ module.exports = {
 		const calculatedDurations = await calculateDuration(duration);
 
 		const all_ids = discord_ids.concat(roblox_ids)
-
+		if (all_ids[0] == undefined) {
+			interaction.followUp(`<@${interaction.user.id}> command failed! No ids inputted.`) 
+			console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
+			return
+		}
 		// make a multiple msg log from arguments + table magic
 		async function multiLog() {
 			let reasonNumber = 0;
 			let durationNumber = 0;
 			for (const flake of all_ids) {
 				// make a log
-				const regExp = /[a-zA-Z]/g;
 				let firstID
 				let firstUser
 				let secondID
@@ -88,7 +91,6 @@ module.exports = {
 				let text = '';
 				text += `[${type} Ban]\n\n`
 				text += `[${firstUser}:${firstID}`
-				console.log(firstID, firstUser)
 				secondUser ? text += ` - ${secondUser}:${secondID}]\n\n` : text += `]\n\n`
 				text += `[${reason[reasonNumber]}]\n\n`;
 				text += `[${calculatedDurations[durationNumber]}(<t:${calculatedDurations[durationNumber + 1]}:${timeFormat}> - <t:${calculatedDurations[durationNumber + 2]}:${timeFormat}>)]`;

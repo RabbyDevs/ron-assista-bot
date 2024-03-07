@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { err, getDate, robloxUsertoID, robloxIDtoUser } = require('../../modules/helperFunctions');
+const { getDate, robloxUsertoID, robloxIDtoUser } = require('../../modules/helperFunctions');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -75,6 +75,11 @@ module.exports = {
 		const multiMessage = (interaction.options.getBoolean('multimessage') ? interaction.options.getBoolean('multimessage') : false);
 		const duration = (type == 'Temporary Ban' ? interaction.options.getString('duration') : undefined);
 		// make a single log, using the above arguments.
+		if (roblox_users[0] == undefined) {
+			interaction.followUp(`<@${interaction.user.id}> command failed! No ids inputted.`) 
+			console.log(`Command ${interaction.commandName} started by ${interaction.user.username} ended on ${await getDate()}`);
+			return
+		}
 		async function singleLog() {
 			let text = (duration ? `[${type}: ${duration}]\n` : `[${type}]\n`);
 			for (const user of roblox_users) {
