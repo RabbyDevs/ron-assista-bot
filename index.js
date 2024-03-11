@@ -118,6 +118,4 @@ client.login(token).then(async () => {
 			});
 		fs.writeFileSync(cacheFilepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
 	}
-	const guild = await client.guilds.resolve('570684122519830540')
-	console.log(await guild.bans.size)
 });
