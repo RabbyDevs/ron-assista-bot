@@ -108,7 +108,7 @@ client.once(Events.ClientReady, c => {
 });
 
 // Log in to Discord with your client's token
-client.login(token).then(() => {
+client.login(token).then(async () => {
 	// Check if the bot was restarted via /update.
 	if (restart == true) {
 		client.channels.fetch(lastInteractedChannel)
@@ -118,5 +118,6 @@ client.login(token).then(() => {
 			});
 		fs.writeFileSync(cacheFilepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
 	}
-	console.log(client.guilds.resolve(570684122519830540).bans.size)
+	const guild = await client.guilds.resolve(570684122519830540)
+	console.log(await guild.bans.size)
 });
