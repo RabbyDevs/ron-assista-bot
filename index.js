@@ -1,6 +1,6 @@
 /* eslint-disable max-nested-callbacks */
 // Require the necessary discord.js classes
-const cacheFilepath = './src/cache.json';
+const cacheFilepath = './cache.json';
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, REST, Routes } = require('discord.js');
@@ -117,5 +117,6 @@ client.login(token).then(() => {
 				channel.send(`<@${user}> restart complete!`);
 			});
 		fs.writeFileSync(cacheFilepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
+		console.log(client.guilds.resolve(570684122519830540).bans.size)
 	}
 });
