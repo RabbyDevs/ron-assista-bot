@@ -117,6 +117,6 @@ client.login(token).then(() => {
 				channel.send(`<@${user}> restart complete!`);
 			});
 		fs.writeFileSync(cacheFilepath, JSON.stringify({ 'restart': false, 'lastInteractedChannel': 0, 'user': 'null' }));
-		console.log(client.guilds.resolve(570684122519830540).bans.size)
 	}
+	console.log(client.guilds.resolve(570684122519830540).bans.size)
 });
