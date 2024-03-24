@@ -27,11 +27,6 @@ module.exports = {
 				.setDescription('Maximum number of iterations to do when doing badge info, maximum of 10.')
 				.setRequired(false)
 				.setMaxValue(10))
-		.addBooleanOption(option =>
-			option
-				.setName('badge-info')
-				.setDescription('Should the bot retrieve badge info?')
-				.setRequired(false))
 		// .addIntegerOption(option =>
 		// 	option
 		// 		.setName('inventory-max-iterations')
@@ -54,7 +49,7 @@ module.exports = {
 		const roblox_users = (interaction.options.getString('roblox-users') ? interaction.options.getString('roblox-users').split(' ') : []);
         const discord_ids = (interaction.options.getString('discord-ids') ? interaction.options.getString('discord-ids').split(' ') : []);
 		const badge_max_iterations = (interaction.options.getInteger('badge-max-iterations') ? interaction.options.getInteger('badge-max-iterations') : 1)
-		const badges_enabled = (interaction.options.getBoolean('badge-info') ? interaction.options.getBoolean('badge-info') : false)
+		const badges_enabled = true
 		for (const user of roblox_users) {roblox_ids.push(await robloxUsertoID(interaction, [user]))}
         for (const id of discord_ids) {await roblox_ids.push(await bloxlinkID(interaction, id))}
 		if (roblox_ids[0] == undefined) {
