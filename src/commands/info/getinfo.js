@@ -68,6 +68,8 @@ module.exports = {
 https://roblox.com/users/${id}
 \\- Description -
 ${(information.description ? information.description : 'No description.')}
+\\- Display Name -
+${(information.displayName ? information.displayName : 'No display name.')}
 \\- Account Creation Date -
 <t:${Math.round(Date.parse(information.created)/1000)}:D>
 \\- Friend Count -
