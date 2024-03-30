@@ -34,6 +34,7 @@ module.exports = {
 					{ name: 'Feedback Blacklist', value: 'Feedback Blacklist' },
 					{ name: 'Gamebot Blacklist', value: 'Gamebot Blacklist' },
 					{ name: 'Trusted VIP Host', value: 'Trusted VIP Host' },
+					{ name: 'Ask for Help Blacklist', value: 'Ask for Help Blacklist' },
 				))
 		.setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
 	async execute(interaction) {
