@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { getDate } = require('../../modules/helperFunctions')
 
 module.exports = {
 	data: new SlashCommandBuilder()
