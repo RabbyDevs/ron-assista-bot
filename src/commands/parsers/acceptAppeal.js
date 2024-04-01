@@ -37,9 +37,9 @@ module.exports = {
 			// dm the user about their accepted appeal
 			const probationString =
             (calculatedDurations[durationNumber] ? `
-You are currently on probation for ${calculatedDurations[durationNumber].replace(/.$/, '')}. (<t:${calculatedDurations[durationNumber + 1]}:f> - <t:${calculatedDurations[durationNumber + 2]}:f>)\n
+You are currently on probation for ${calculatedDurations[durationNumber].replace(/.$/, '')}. (<t:${calculatedDurations[durationNumber + 1]}:f> - <t:${calculatedDurations[durationNumber + 2]}:f>)
 ### What is probation?
-Probation is a role and if you are warned/muted while your probation has not expired, you will be immediately banned due to being on probation.
+Probation is a role where if you are warned/muted while you have said role, you will be immediately banned due to being on probation.
 On top of this you cannot apply for any Rise of Nations staff positions (including wiki and event ones), and leaving the server will pause your probation time until you have returned.\n\n` : '\n');
 			await interaction.client.users.send(id, `Your appeal has been accepted by <@${reviewers[reviewerNumber]}>!\nYou have been unbanned and are now able to rejoin the server.\n${probationString}discord.gg/riseofnations`);
 			durationNumber = (calculatedDurations[durationNumber + 3] ? durationNumber + 3 : durationNumber);
