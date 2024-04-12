@@ -1,0 +1,3 @@
+[build]
+rustc-wrapper = "sccache.exe"
+rustflags = ["-Z", "threads=24"]
