@@ -90,6 +90,7 @@ https://roblox.com/users/{}
 {}
 \- Group Count -
 {}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count)).await?;
+        if badge_max_iterations > default_iterations {channel.say(interaction, format!("Getting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", default_iterations)).await?;}
         let (badge_count, win_rate, welcome_badge_count, mut awarders) = badge_data.await?;
         if awarders.len() > 5 {awarders.split_off(5);}
         let mut awarders_string = "\n".to_string();
@@ -98,7 +99,6 @@ https://roblox.com/users/{}
                 awarders_string.push_str(format!(" - {}: {}\n", awarder.0, awarder.1).as_str())
             }
         }
-        if badge_max_iterations > default_iterations {channel.say(interaction, format!("Getting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", default_iterations)).await?;}
         channel.say(interaction, format!(r#"\- Badge Info -
 - Badge Count: {}
 - Average Win Rate: {}%
