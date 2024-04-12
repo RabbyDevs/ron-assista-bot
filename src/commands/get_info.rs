@@ -24,8 +24,8 @@ pub async fn getinfo(
         return Ok(());
     }
     let iterations_exists = badge_max_iterations.is_some();
-    let mut badge_max_iterations: i64 = default_iterations;
-    if iterations_exists {badge_max_iterations = badge_max_iterations}
+    let badge_iterations: i64;
+    if iterations_exists == true {badge_iterations = badge_max_iterations.unwrap()} else {badge_iterations = default_iterations}
 
     if roblox_users[0].len() == 0 {roblox_users.remove(0);}
     let user_search = RBX_CLIENT.username_user_details(roblox_users, false).await?;
@@ -45,11 +45,10 @@ pub async fn getinfo(
 
     for id in roblox_ids {
         if id.len() == 0 {continue}
-        println!("{}", id);
         let mut badge_errors: Vec<String> = Vec::new();
         let id_for_badges = id.clone();
         let badge_data = tokio::spawn(async move {
-            match helper::badge_data(id_for_badges.clone(), badge_max_iterations).await {
+            match helper::badge_data(id_for_badges.clone(), badge_iterations).await {
                 Ok(data) => data,
                 Err(_) => {
                     badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
@@ -90,7 +89,7 @@ https://roblox.com/users/{}
 {}
 \- Group Count -
 {}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count)).await?;
-        if badge_max_iterations > default_iterations {channel.say(interaction, format!("Getting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", default_iterations)).await?;}
+        if badge_iterations > default_iterations {println!("fuck you"); channel.say(interaction, format!("Getting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", default_iterations)).await?;}
         let (badge_count, win_rate, welcome_badge_count, mut awarders) = badge_data.await?;
         if awarders.len() > 5 {awarders.split_off(5);}
         let mut awarders_string = "\n".to_string();

@@ -1,7 +1,7 @@
 use std::{env, time::Duration};
 use once_cell::sync::Lazy;
 use roboat::ClientBuilder;
-use ::serenity::{all::{Message, Ready}, async_trait};
+use ::serenity::{all::{Message, MessageType, Ready}, async_trait};
 use tokio::time::sleep as tokio_sleep;
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
@@ -30,7 +30,8 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
     }
     async fn message(&self, ctx: serenity::prelude::Context, msg: Message) {
-        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && msg.member(&ctx).await.expect("member err").permissions(&ctx).expect("err").moderate_members() == false {
+        let regular = MessageType::Regular;
+        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && msg.member(&ctx).await.expect("member err").permissions(&ctx).expect("err").moderate_members() == false && msg.kind == regular {
             if msg.author.bot == false {
                 msg.delete(&ctx).await.expect("err deleting msg");
                 let test_msg = msg.channel_id.send_message(&ctx, CreateMessage::new().content(format!("{} sending polls is not allowed!", msg.author.mention()))).await.expect("err sending msg");

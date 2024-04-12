@@ -78,7 +78,6 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         if cursor == "null" {break}
         let url = if cursor.len() != 0 { format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor) } 
         else {format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc", roblox_id)};
-        println!("{}", url);
         let response = REQWEST_CLIENT.get(url)
             .send()
             .await.expect("??");
