@@ -67,7 +67,7 @@ pub async fn getinfo(
 
         let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("u64 err")).await?;
         let description = user_details.description;
-        let sanitized_description = new_line_regex.replace(description.as_str(), "").to_string();
+        let mut sanitized_description = new_line_regex.replace(description.as_str(), "").to_string();
         let created_at: DateTime<Local> = DateTime::from_str(user_details.created_at.as_str()).expect("err");
         let created_at_timestamp = created_at.timestamp();
         let channel = interaction.channel_id();
@@ -77,6 +77,7 @@ pub async fn getinfo(
         channel.say(interaction, format!("{}", user_details.id)).await?;
         let friend_count = friend_count.await?;
         let group_count = group_count.await?;
+        sanitized_description = if sanitized_description.len() == 0 {"No description found.".to_string()} else {sanitized_description};
         channel.say(interaction, format!(r#"\- Profile Link -
 https://roblox.com/users/{}
 \- Description -
