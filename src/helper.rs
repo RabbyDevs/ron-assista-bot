@@ -86,8 +86,9 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         } else {
             let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
             badge_count += parsed_json["data"].as_array().unwrap().len() as i64;
-            if badge_count  == 0 || parsed_json["nextPageCursor"].as_str() == None {break}
-            cursor = quote_regex.replace(parsed_json["nextPageCursor"].as_str().unwrap(), "").to_string();
+            if badge_count  != 0 && parsed_json["nextPageCursor"].as_str() != None {
+                cursor = quote_regex.replace(parsed_json["nextPageCursor"].as_str().unwrap(), "").to_string();
+            } else {cursor = "null".to_string()}
             for badge_data in parsed_json["data"].as_array().unwrap() {
 				total_win_rate += badge_data["statistics"]["winRatePercentage"].as_number().unwrap().as_f64().unwrap() as i64;
 				if regex.is_match(badge_data["name"].as_str().unwrap()) == true {
