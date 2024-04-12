@@ -31,7 +31,7 @@ impl EventHandler for Handler {
     }
     async fn message(&self, ctx: serenity::prelude::Context, msg: Message) {
         let regular = MessageType::Regular;
-        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && msg.member(&ctx).await.expect("member err").permissions(&ctx).expect("err").moderate_members() == false && msg.kind == regular {
+        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && msg.author.bot == false && msg.member(&ctx).await.expect("member err").permissions(&ctx).expect("err").moderate_members() == false && msg.kind == regular {
             if msg.author.bot == false {
                 msg.delete(&ctx).await.expect("err deleting msg");
                 let test_msg = msg.channel_id.send_message(&ctx, CreateMessage::new().content(format!("{} sending polls is not allowed!", msg.author.mention()))).await.expect("err sending msg");
