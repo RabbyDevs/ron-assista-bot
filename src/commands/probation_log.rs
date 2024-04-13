@@ -21,6 +21,10 @@ pub async fn probationlog(
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
     let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    if purified_users.len() == 0 {
+        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
+        return Ok(());
+    }
     let users = purified_users.split(" ");
     let reasons = reason.split("|").map(str::to_string).collect::<Vec<String>>();
     let type_string = format!("[{}]\n\n", infraction_type.name());

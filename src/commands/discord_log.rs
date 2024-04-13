@@ -26,6 +26,10 @@ pub async fn discordlog(
     interaction.reply("Making logs, please standby!").await?;
     let multimessage = multimessage.unwrap_or_default();
     let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    if purified_users.len() == 0 {
+        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
+        return Ok(());
+    }
     let users = purified_users.split(" ");
     let reasons = reason.split("|").map(str::to_string).collect::<Vec<String>>();
     let notes = note.unwrap_or_default().split("|").map(str::to_string).collect::<Vec<String>>();

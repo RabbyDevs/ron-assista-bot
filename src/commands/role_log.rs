@@ -58,6 +58,10 @@ pub async fn rolelog(
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
     let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    if purified_users.len() == 0 {
+        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
+        return Ok(());
+    }
     let users = purified_users.split(" ");
     let reason = reason.unwrap_or_default();
     for snowflake in users {

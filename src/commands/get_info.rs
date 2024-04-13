@@ -22,7 +22,7 @@ pub async fn getinfo(
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
     let mut roblox_ids = purified_roblox_ids.split(" ").map(str::to_string).collect::<Vec<String>>();
     if roblox_users[0].len() == 0 && discord_ids[0].len() == 0 && roblox_ids[0].len() == 0 {
-        interaction.say("Command failed; no users inputted.").await?;
+        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
     let iterations_exists = badge_max_iterations.is_some();
