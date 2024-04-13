@@ -27,6 +27,14 @@ pub enum RoleEnums {
     CreationsBlacklist,
     #[name = "Wiki Blacklist"]
     WikiBlacklist,
+    #[name = "Retired Staff"]
+    RetiredStaff,
+    #[name = "Seasoned Staff"]
+    SeasonedStaff,
+    #[name = "Veteran Staff"]
+    VeteranStaff,
+    #[name = "Legacy Staff"]
+    LegacyStaff,
     #[name = "Challenges Blacklist"]
     ChallengesBlacklist,
     #[name = "Strategies Blacklist"]
