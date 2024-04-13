@@ -1,7 +1,7 @@
 use poise::ChoiceParameter;
 use serenity::User;
 
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, NUMBER_REGEX};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum ProbationTypes {
@@ -20,7 +20,8 @@ pub async fn probationlog(
     #[description = "Multimessage mode allows creation of multiple logs from 1 command."] duration: String
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
-    let users = users.split(" ");
+    let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    let users = purified_users.split(" ");
     let reasons = reason.split("|").map(str::to_string).collect::<Vec<String>>();
     let type_string = format!("[{}]\n\n", infraction_type.name());
 

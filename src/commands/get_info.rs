@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use indexmap::IndexMap;
 use regex::Regex;
 
-use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT, CONFIG};
+use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn getinfo(
@@ -16,9 +16,11 @@ pub async fn getinfo(
     let new_line_regex = Regex::from_str("/(?:\r?\n){4,}/gm").expect("regex err");
     let default_iterations: i64 = CONFIG.default_badge_iterations;
 
-    let mut roblox_users = roblox_users.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
-    let discord_ids = discord_ids.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
-    let mut roblox_ids = roblox_ids.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
+    let mut roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
+    let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
+    let discord_ids = purified_users.split(" ").map(str::to_string).collect::<Vec<String>>();
+    let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
+    let mut roblox_ids = purified_roblox_ids.split(" ").map(str::to_string).collect::<Vec<String>>();
     if roblox_users[0].len() == 0 && discord_ids[0].len() == 0 && roblox_ids[0].len() == 0 {
         interaction.say("Command failed; no users inputted.").await?;
         return Ok(());

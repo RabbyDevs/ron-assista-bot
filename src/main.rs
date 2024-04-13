@@ -1,5 +1,6 @@
 use std::{env, time::Duration};
 use once_cell::sync::Lazy;
+use regex::Regex;
 use roboat::ClientBuilder;
 use ::serenity::{all::{Message, MessageType, Ready}, async_trait};
 use tokio::time::sleep as tokio_sleep;
@@ -17,6 +18,7 @@ static_toml::static_toml! {
 }
 static RBX_CLIENT: Lazy<roboat::Client> = Lazy::new(|| ClientBuilder::new().build());
 static REQWEST_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| reqwest::Client::new());
+static NUMBER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::from_str(r"[^\d\s]").expect("err"));
 
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;

@@ -1,6 +1,6 @@
 use poise::ChoiceParameter;
 
-use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT};
+use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT, NUMBER_REGEX};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum RobloxInfTypes {
@@ -29,8 +29,10 @@ pub async fn robloxlog(
     interaction.reply("Making logs...").await?;
     let multimessage = multimessage.unwrap_or_default();
     let mut roblox_users = roblox_users.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
-    let discord_ids = discord_ids.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
-    let mut roblox_ids = roblox_ids.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
+    let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
+    let discord_ids = purified_users.split(" ").map(str::to_string).collect::<Vec<String>>();
+    let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
+    let mut roblox_ids = purified_roblox_ids.split(" ").map(str::to_string).collect::<Vec<String>>();
     if roblox_users[0].len() == 0 && discord_ids[0].len() == 0 && roblox_ids[0].len() == 0 {
         interaction.say("Command failed; no users inputted.").await?;
         return Ok(());

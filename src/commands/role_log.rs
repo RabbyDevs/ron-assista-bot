@@ -2,7 +2,7 @@
 use poise::ChoiceParameter;
 use serenity::User;
 
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, NUMBER_REGEX};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum RoleEnums {
@@ -57,7 +57,8 @@ pub async fn rolelog(
     #[description = "Optional reason for giving the role."] reason: Option<String>,
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
-    let users = users.split(" ");
+    let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    let users = purified_users.split(" ");
     let reason = reason.unwrap_or_default();
     for snowflake in users {
         let userid: UserId = UserId::from_str(snowflake).expect("something went wrong.");

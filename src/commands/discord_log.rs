@@ -2,7 +2,7 @@
 use poise::ChoiceParameter;
 use serenity::User;
 
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, NUMBER_REGEX};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum DiscordInfTypes {
@@ -25,7 +25,8 @@ pub async fn discordlog(
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
     let multimessage = multimessage.unwrap_or_default();
-    let users = users.split(" ");
+    let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    let users = purified_users.split(" ");
     let reasons = reason.split("|").map(str::to_string).collect::<Vec<String>>();
     let notes = note.unwrap_or_default().split("|").map(str::to_string).collect::<Vec<String>>();
     let mut users_string = String::new();
