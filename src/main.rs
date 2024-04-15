@@ -39,7 +39,7 @@ impl EventHandler for Handler {
             },
             Err(_) => {return ();},   
         };
-        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && msg.author.bot == false && member.permissions(&ctx).expect("err").moderate_members() == false && msg.kind == regular {
+        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && member.permissions(&ctx).unwrap().moderate_members() == false && msg.kind == regular && msg.channel_id != 570685869288325168 {
             if msg.author.bot == false {
                 msg.delete(&ctx).await.expect("err deleting msg");
                 let test_msg = msg.channel_id.send_message(&ctx, CreateMessage::new().content(format!("{} sending polls is not allowed!", msg.author.mention()))).await.expect("err sending msg");
