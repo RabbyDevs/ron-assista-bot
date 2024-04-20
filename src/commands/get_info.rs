@@ -16,27 +16,26 @@ pub async fn getinfo(
     let new_line_regex = Regex::from_str("/(?:\r?\n){4,}/gm").expect("regex err");
     let default_iterations: i64 = CONFIG.default_badge_iterations;
 
-    let mut roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(" ").map(str::to_string).collect::<Vec<String>>();
+    let mut roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
-    let discord_ids = purified_users.split(" ").map(str::to_string).collect::<Vec<String>>();
+    let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
-    let mut roblox_ids = purified_roblox_ids.split(" ").map(str::to_string).collect::<Vec<String>>();
-    if roblox_users[0].len() == 0 && discord_ids[0].len() == 0 && roblox_ids[0].len() == 0 {
+    let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
+    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty(){
         interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
     let iterations_exists = badge_max_iterations.is_some();
-    let badge_iterations: i64;
-    if iterations_exists == true {badge_iterations = badge_max_iterations.unwrap()} else {badge_iterations = default_iterations}
+    let badge_iterations: i64 = if iterations_exists {badge_max_iterations.unwrap()} else {default_iterations};
 
-    if roblox_users[0].len() == 0 {roblox_users.remove(0);}
+    if roblox_users[0].is_empty() {roblox_users.remove(0);}
     let user_search = RBX_CLIENT.username_user_details(roblox_users, false).await?;
     for user in user_search {
         roblox_ids.push(user.id.to_string())
     }
 
     for id in discord_ids {
-        if id.len() == 0 {continue}
+        if id.is_empty() {continue}
         let discord_id = UserId::from_str(id.as_str()).expect("err");
         let roblox_id_str = match helper::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
             interaction.say(err).await?;
@@ -46,7 +45,7 @@ pub async fn getinfo(
     }
 
     for id in roblox_ids {
-        if id.len() == 0 {continue}
+        if id.is_empty() {continue}
         let mut badge_errors: Vec<String> = Vec::new();
         let id_for_badges = id.clone();
         let badge_data = tokio::spawn(async move {
@@ -79,8 +78,8 @@ pub async fn getinfo(
         channel.say(interaction, format!("{}", user_details.id)).await?;
         let friend_count = friend_count.await?;
         let group_count = group_count.await?;
-        sanitized_description = if sanitized_description.len() == 0 {"No description found.".to_string()} else {sanitized_description};
-        channel.say(interaction, format!(r#"\- Profile Link -
+        sanitized_description = if sanitized_description.is_empty() {"No description found.".to_string()} else {sanitized_description};
+        let mut response = format!(r#"\- Profile Link -
 https://roblox.com/users/{}
 \- Description -
 {}
@@ -91,12 +90,14 @@ https://roblox.com/users/{}
 \- Friend Count -
 {}
 \- Group Count -
-{}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count)).await?;
-        if badge_iterations > default_iterations {println!("fuck you"); channel.say(interaction, format!("Getting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", default_iterations)).await?;}
+{}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count);
+        if badge_iterations > default_iterations {response = format!("{}\nGetting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", response, default_iterations);}
+        channel.say(interaction, response).await?;
+        
         let (badge_count, win_rate, welcome_badge_count, mut awarders) = badge_data.await?;
         if awarders.len() > 5 {awarders.split_off(5);}
         let mut awarders_string = "\n".to_string();
-        if awarders.len() == 0 {awarders_string = "No badges found, there are no top badge givers.".to_string()} else {
+        if awarders.is_empty() {awarders_string = "No badges found, there are no top badge givers.".to_string()} else {
             for awarder in awarders {
                 awarders_string.push_str(format!(" - {}: {}\n", awarder.0, awarder.1).as_str())
             }

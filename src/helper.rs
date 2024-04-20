@@ -31,10 +31,10 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     date_map.insert("d", (86400, "Day"));
     date_map.insert("w", (604800, "Week"));
     date_map.insert("m", (2629743, "Month"));
-    let duration_list = duration_string.split(" ").map(str::to_string).collect::<Vec<String>>();
+    let duration_list = duration_string.split(' ').map(str::to_string).collect::<Vec<String>>();
     let mut unix_total = 0;
     let mut final_string = String::new();
-    if duration_list.len() == 0 {return Err(format!("Something went wrong parsing duration string `{}`.", duration_string));} else {
+    if duration_list.is_empty() {return Err(format!("Something went wrong parsing duration string `{}`.", duration_string));} else {
         for duration in duration_list.clone() {
             let chars = duration.chars();
             let amount = match chars.clone().filter(|x| x.is_ascii_digit()).collect::<String>().parse::<u64>() {
@@ -44,13 +44,13 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
                 },
             };
             let identifier = chars.last().expect("err");
-            if date_map.contains_key(identifier.to_string().as_str()) == false {
+            if !date_map.contains_key(identifier.to_string().as_str()) {
                 return Err(format!("Something went wrong parsing duration string `{}`.", duration_string));
             }
             let mut name = date_map[&identifier.to_string().as_str()].1.to_string();
             if amount > 1 {name = format!("{} {}s, ", amount, name)} else {name = format!("{} {}, ", amount, name)}
-            if duration_list.ends_with(&[duration.clone()]) == true {name.pop();name.pop();}
-            if duration_list.ends_with(&[duration.clone()]) == true && duration_list.starts_with(&[duration.clone()]) != true {name = format!("and {}", name);}
+            if duration_list.ends_with(&[duration.clone()]) {name.pop();name.pop();}
+            if duration_list.ends_with(&[duration.clone()]) && !duration_list.starts_with(&[duration.clone()]) {name = format!("and {}", name);}
             final_string.push_str(name.as_str());
             let unix_unit = date_map[&identifier.to_string().as_str()].0 * amount;
             unix_total += unix_unit
@@ -76,7 +76,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
 	let mut awarders: IndexMap<u64, u64> = IndexMap::new();
     for _ in 0..badge_iterations {
         if cursor == "null" {break}
-        let url = if cursor.len() != 0 { format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor) } 
+        let url = if cursor.is_empty() { format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor) } 
         else {format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc", roblox_id)};
         let response = REQWEST_CLIENT.get(url)
             .send()
@@ -86,12 +86,12 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         } else {
             let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
             badge_count += parsed_json["data"].as_array().unwrap().len() as i64;
-            if badge_count  != 0 && parsed_json["nextPageCursor"].as_str() != None {
+            if badge_count  != 0 && parsed_json["nextPageCursor"].as_str().is_some() {
                 cursor = quote_regex.replace(parsed_json["nextPageCursor"].as_str().unwrap(), "").to_string();
             } else {cursor = "null".to_string()}
             for badge_data in parsed_json["data"].as_array().unwrap() {
 				total_win_rate += badge_data["statistics"]["winRatePercentage"].as_number().unwrap().as_f64().unwrap() as i64;
-				if regex.is_match(badge_data["name"].as_str().unwrap()) == true {
+				if regex.is_match(badge_data["name"].as_str().unwrap()) {
 					welcome_badge_count += 1
 				}
                 let awarder_index = badge_data["awarder"]["id"].as_number().unwrap().as_u64().unwrap();
@@ -104,7 +104,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         }
     }
     if badge_count > 0 {win_rate += (total_win_rate*100)/badge_count};
-    awarders.sort_by(|_, b: &u64, _, d: &u64| d.cmp(&b));
+    awarders.sort_by(|_, b: &u64, _, d: &u64| d.cmp(b));
     Ok((badge_count, win_rate, welcome_badge_count, awarders))
 }
 

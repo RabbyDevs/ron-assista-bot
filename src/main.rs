@@ -1,8 +1,8 @@
-use std::{env, time::Duration};
+use std::{env, time::{Duration, SystemTime, UNIX_EPOCH}};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::{all::{Message, MessageType, Ready}, async_trait};
+use ::serenity::{all::{Message, MessageId, MessageType, Ready}, async_trait};
 use tokio::time::sleep as tokio_sleep;
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
@@ -37,17 +37,33 @@ impl EventHandler for Handler {
             Ok(member) => {
                 member
             },
-            Err(_) => {return ();},   
+            Err(_) => {return;},   
         };
-        if msg.content.len() == 0 && msg.attachments.len() == 0 && msg.sticker_items.len() == 0 && member.permissions(&ctx).unwrap().moderate_members() == false && msg.kind == regular && msg.channel_id != 570685869288325168 {
-            if msg.author.bot == false {
+        if msg.content.is_empty() && msg.attachments.is_empty() && msg.sticker_items.is_empty() && msg.kind == regular && msg.channel_id != 570685869288325168 {
+            if !msg.author.bot && !member.permissions(&ctx).unwrap().moderate_members() {
                 msg.delete(&ctx).await.expect("err deleting msg");
                 let test_msg = msg.channel_id.send_message(&ctx, CreateMessage::new().content(format!("{} sending polls is not allowed!", msg.author.mention()))).await.expect("err sending msg");
                 tokio_sleep(Duration::from_secs(5)).await;
                 test_msg.delete(ctx).await.expect("err");
             }
         }
+        // if msg.channel_id == 825755301981978685 {
+        //     let start = SystemTime::now();
+        //     let since_the_epoch = start
+        //         .duration_since(UNIX_EPOCH)
+        //         .expect("Time went backwards");
+        //     let epoch_in_s = since_the_epoch.as_secs();
+        // }
     }
+
+    // async fn message_delete(&self, ctx: serenity::prelude::Context, channelid: serenity::all::ChannelId, msg_id: MessageId, _: Option<serenity::all::GuildId>) {
+
+    // }
+    // async fn reaction_add(&self, ctx: serenity::prelude::Context, add_reaction: serenity::Reaction) {
+    //     if add_reaction.member.unwrap().permissions(&ctx).unwrap().administrator() {
+
+    //     }
+    // }
 }
 
 #[tokio::main]

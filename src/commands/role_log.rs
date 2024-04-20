@@ -70,7 +70,7 @@ pub async fn rolelog(
         interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
-    let users = purified_users.split(" ");
+    let users = purified_users.split(' ');
     let reason = reason.unwrap_or_default();
     for snowflake in users {
         let userid: UserId = UserId::from_str(snowflake).expect("something went wrong.");
@@ -81,7 +81,7 @@ pub async fn rolelog(
                 Err(_) => {roblox_errors.push(format!("A error occured on Bloxlink's end when getting {}'s Roblox id. The user may be not verified with Bloxlink or Bloxlink is down.", userid));
                 "null".to_string()}
             };
-            let roblox_user = if roblox_id != "null".to_string() {RBX_CLIENT.user_details(roblox_id.parse::<u64>().expect("err")).await.expect("err").username} else { "null".to_string() };
+            let roblox_user = if roblox_id != *"null".to_string() {RBX_CLIENT.user_details(roblox_id.parse::<u64>().expect("err")).await.expect("err").username} else { "null".to_string() };
             (roblox_id, roblox_user, roblox_errors)
         });
         let user: User = match userid.to_user(interaction).await {
@@ -94,7 +94,7 @@ pub async fn rolelog(
         let (roblox_user, roblox_id, roblox_errors) = roblox_handler.await.unwrap();
         for error in roblox_errors {interaction.say(error).await?;}
         let mut response = format!("[{}]\n[{}]\n[{}:{} - {}:{}]", infraction_type.name(), role.name(), user.mention(), user.id, roblox_user, roblox_id);
-        if reason.len() != 0 {response.push_str(format!("\n[{}]", reason).as_str())}
+        if !reason.is_empty() {response.push_str(format!("\n[{}]", reason).as_str())}
         interaction.say(response).await?;
     }
     Ok(())
