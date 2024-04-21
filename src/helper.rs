@@ -2,11 +2,11 @@ use indexmap::IndexMap;
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serde_json::Value;
-use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::{UserId, CONFIG, REQWEST_CLIENT};
+use super::{UserId, CONFIG, REQWEST_CLIENT, RBX_CLIENT};
 
 pub async fn discord_id_to_roblox_id(discord_id: UserId) -> Result<String, String> {
     let quote_regex = Regex::new("/\"/gi").expect("regex err");
@@ -64,48 +64,75 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     Ok((epoch_in_s, epoch_in_s + unix_total, final_string))
 }
 
-pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, i64, i64, IndexMap<u64, u64>), String> {
-    let regex = Regex::new("/Welcome|Join|visit|play/gi").expect("regex err");
-    let quote_regex = Regex::new("/\"/gi").expect("regex err");
+pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, i64, i64, String), String> {
+    let regex = Regex::new(r"(Welcome|Join|visit|play)").expect("regex err");
+    let quote_regex = Regex::new(r#"\""#).expect("regex err");
 
-    let mut badge_count: i64 = 0;
-	let mut total_win_rate: i64 = 0;
-	let mut win_rate : i64= 0;
-	let mut welcome_badge_count: i64 = 0;
-	let mut cursor: String = String::new();
-	let mut awarders: IndexMap<u64, u64> = IndexMap::new();
+    let mut badge_count = 0;
+    let mut total_win_rate = 0;
+    let mut win_rate = 0;
+    let mut welcome_badge_count = 0;
+    let mut cursor = String::new();
+    let mut awarders = IndexMap::new();
+
     for _ in 0..badge_iterations {
-        if cursor == "null" {break}
-        let url = if cursor.is_empty() { format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor) } 
-        else {format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc", roblox_id)};
-        let response = REQWEST_CLIENT.get(url)
-            .send()
-            .await.expect("??");
-        if response.status() != reqwest::StatusCode::OK {
-            return Err("Request failed.".to_string());
+        if cursor == "null" {
+            break;
+        }
+
+        let url = if cursor.is_empty() {
+            format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor)
         } else {
-            let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
-            badge_count += parsed_json["data"].as_array().unwrap().len() as i64;
-            if badge_count  != 0 && parsed_json["nextPageCursor"].as_str().is_some() {
-                cursor = quote_regex.replace(parsed_json["nextPageCursor"].as_str().unwrap(), "").to_string();
-            } else {cursor = "null".to_string()}
-            for badge_data in parsed_json["data"].as_array().unwrap() {
-				total_win_rate += badge_data["statistics"]["winRatePercentage"].as_number().unwrap().as_f64().unwrap() as i64;
-				if regex.is_match(badge_data["name"].as_str().unwrap()) {
-					welcome_badge_count += 1
-				}
-                let awarder_index = badge_data["awarder"]["id"].as_number().unwrap().as_u64().unwrap();
-                let awarder = awarders.get_mut(awarder_index.borrow());
-                match awarder {
-                    Some(awarder) => {*awarder += 1},
-                    None => {awarders.insert(awarder_index, 1);},
-                };
-			}
+            format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc", roblox_id)
+        };
+
+        let response = REQWEST_CLIENT.get(&url)
+            .send()
+            .await
+            .unwrap_or_else(|e| panic!("Request failed: {}", e));
+
+        if !response.status().is_success() {
+            return Err("Request failed.".to_string());
+        }
+
+        let parsed_json: Value = serde_json::from_str(&response.text().await.unwrap_or_else(|e| panic!("Failed to parse response: {}", e)))
+            .unwrap_or_else(|e| panic!("Failed to parse JSON: {}", e));
+
+        let data = parsed_json.get("data").and_then(|d| d.as_array()).unwrap();
+        let next_page_cursor = parsed_json.get("nextPageCursor").and_then(|c| c.as_str()).unwrap_or("null");
+        badge_count += data.len() as i64;
+
+        if badge_count != 0 && next_page_cursor != "null" {
+            cursor = quote_regex.replace(next_page_cursor, "").to_string();
+        } else {
+            cursor = "null".to_string();
+        }
+
+        for badge_data in data {
+            total_win_rate += badge_data["statistics"]["winRatePercentage"].as_f64().unwrap() as i64;
+            if regex.is_match(badge_data["name"].as_str().unwrap()) {
+                welcome_badge_count += 1;
+            }
+            let awarder_index = badge_data["awarder"]["id"].as_u64().unwrap();
+            awarders.entry(awarder_index).and_modify(|e| *e += 1).or_insert(1);
         }
     }
-    if badge_count > 0 {win_rate += (total_win_rate*100)/badge_count};
-    awarders.sort_by(|_, b: &u64, _, d: &u64| d.cmp(b));
-    Ok((badge_count, win_rate, welcome_badge_count, awarders))
+
+    if badge_count > 0 {
+        win_rate += (total_win_rate * 100) / badge_count;
+    }
+
+    let mut awarders_vec: Vec<_> = awarders.into_iter().collect();
+    awarders_vec.sort_by(|(_, a), (_, b)| b.cmp(a));
+    awarders_vec.truncate(5);
+
+    let awarders_string = if awarders_vec.is_empty() {
+        "No badges found, there are no top badge givers.".to_string()
+    } else {
+        awarders_vec.iter().map(|(id, count)| format!("\n - {}: {}", id, count)).collect()
+    };
+
+    Ok((badge_count, win_rate, welcome_badge_count, awarders_string))
 }
 
 pub async fn roblox_friend_count(roblox_id: String) -> usize {
@@ -118,4 +145,30 @@ pub async fn roblox_group_count(roblox_id: String) -> usize {
     let response = REQWEST_CLIENT.get(format!("https://groups.roblox.com/v2/users/{}/groups/roles?includeLocked=true", roblox_id)).send().await.expect("request err");
     let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
     parsed_json["data"].as_array().unwrap().len()
+}
+
+pub async fn merge_types(mut roblox_users: Vec<String>, discord_ids: Vec<String>, mut roblox_ids: Vec<String>) -> (Vec<String>, Vec<String>) {
+    let mut errors_vector = Vec::new();
+    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty() {
+        errors_vector.push("Command failed; no users inputted, or users improperly inputted.".to_string())
+    }
+
+    if roblox_users[0].is_empty() {roblox_users.remove(0);}
+    let user_search = RBX_CLIENT.username_user_details(roblox_users.clone(), false).await.unwrap();
+    if user_search.len() != roblox_users.len() {errors_vector.push("Some Roblox users may have failed to process.".to_string());}
+    for user in user_search {
+        roblox_ids.push(user.id.to_string())
+    }
+
+    for id in discord_ids {
+        if id.is_empty() {continue}
+        let discord_id = UserId::from_str(id.as_str()).expect("err");
+        let roblox_id_str = match self::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
+            errors_vector.push(err);
+            continue
+
+        }};
+        roblox_ids.push(roblox_id_str);
+    }
+    (roblox_ids, errors_vector)
 }

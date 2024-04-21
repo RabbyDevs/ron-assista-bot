@@ -1,8 +1,7 @@
 use chrono::{DateTime, Local};
-use indexmap::IndexMap;
 use regex::Regex;
 
-use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX};
+use super::{Context, Error, helper, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX};
 
 #[poise::command(slash_command, prefix_command)]
 pub async fn getinfo(
@@ -16,7 +15,7 @@ pub async fn getinfo(
     let new_line_regex = Regex::from_str("/(?:\r?\n){4,}/gm").expect("regex err");
     let default_iterations: i64 = CONFIG.default_badge_iterations;
 
-    let mut roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
+    let roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
     let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
@@ -25,24 +24,15 @@ pub async fn getinfo(
         interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
+    let roblox_conversion_errors;
+    (roblox_ids, roblox_conversion_errors) = super::helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
+
+    for error in roblox_conversion_errors {
+        interaction.channel_id().say(interaction, error).await?;
+    }
     let iterations_exists = badge_max_iterations.is_some();
+    let channel = interaction.channel_id();
     let badge_iterations: i64 = if iterations_exists {badge_max_iterations.unwrap()} else {default_iterations};
-
-    if roblox_users[0].is_empty() {roblox_users.remove(0);}
-    let user_search = RBX_CLIENT.username_user_details(roblox_users, false).await?;
-    for user in user_search {
-        roblox_ids.push(user.id.to_string())
-    }
-
-    for id in discord_ids {
-        if id.is_empty() {continue}
-        let discord_id = UserId::from_str(id.as_str()).expect("err");
-        let roblox_id_str = match helper::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
-            interaction.say(err).await?;
-            continue
-        }};
-        roblox_ids.push(roblox_id_str);
-    }
 
     for id in roblox_ids {
         if id.is_empty() {continue}
@@ -53,7 +43,7 @@ pub async fn getinfo(
                 Ok(data) => data,
                 Err(_) => {
                     badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
-                    (0, 0, 0, IndexMap::new())
+                    (0, 0, 0, String::new())
                 }
             }
         });
@@ -71,7 +61,6 @@ pub async fn getinfo(
         let mut sanitized_description = new_line_regex.replace(description.as_str(), "").to_string();
         let created_at: DateTime<Local> = DateTime::from_str(user_details.created_at.as_str()).expect("err");
         let created_at_timestamp = created_at.timestamp();
-        let channel = interaction.channel_id();
         channel.say(interaction, "\\- Username -").await?;
         channel.say(interaction, format!("{}", user_details.username)).await?;
         channel.say(interaction, "\\- User ID -").await?;
@@ -94,14 +83,7 @@ https://roblox.com/users/{}
         if badge_iterations > default_iterations {response = format!("{}\nGetting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", response, default_iterations);}
         channel.say(interaction, response).await?;
         
-        let (badge_count, win_rate, welcome_badge_count, mut awarders) = badge_data.await?;
-        if awarders.len() > 5 {awarders.split_off(5);}
-        let mut awarders_string = "\n".to_string();
-        if awarders.is_empty() {awarders_string = "No badges found, there are no top badge givers.".to_string()} else {
-            for awarder in awarders {
-                awarders_string.push_str(format!(" - {}: {}\n", awarder.0, awarder.1).as_str())
-            }
-        }
+        let (badge_count, win_rate, welcome_badge_count, awarders_string) = badge_data.await?;
         channel.say(interaction, format!(r#"\- Badge Info -
 - Badge Count: {}
 - Average Win Rate: {}%

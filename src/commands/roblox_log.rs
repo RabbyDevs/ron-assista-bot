@@ -1,6 +1,6 @@
 use poise::ChoiceParameter;
 
-use super::{Context, Error, helper, UserId, FromStr, RBX_CLIENT, NUMBER_REGEX};
+use super::{Context, Error, helper, RBX_CLIENT, NUMBER_REGEX};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum RobloxInfTypes {
@@ -29,33 +29,24 @@ pub async fn robloxlog(
 ) -> Result<(), Error> {
     interaction.reply("Making logs...").await?;
     let multimessage = multimessage.unwrap_or_default();
-    let mut roblox_users = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
+    let roblox_users = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
     let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
     let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
-    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty() {
+    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty(){
         interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
+    let roblox_conversion_errors;
+    (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
+
+    for error in roblox_conversion_errors {
+        interaction.channel_id().say(interaction, error).await?;
+    }
+
     let reasons = reason.split('|').map(str::to_string).collect::<Vec<String>>();
     let notes = note.unwrap_or_default().split('|').map(str::to_string).collect::<Vec<String>>();
-
-    if roblox_users[0].is_empty() {roblox_users.remove(0);}
-    let user_search = RBX_CLIENT.username_user_details(roblox_users, false).await?;
-    for user in user_search {
-        roblox_ids.push(user.id.to_string())
-    }
-
-    for id in discord_ids {
-        if id.is_empty() {continue}
-        let discord_id = UserId::from_str(id.as_str()).expect("err");
-        let roblox_id_str = match helper::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
-            interaction.say(err).await?;
-            continue
-        }};
-        roblox_ids.push(roblox_id_str);
-    }
 
     let mut users_string = String::new();
     let mut user_string_vec: Vec<String> = Vec::new();
