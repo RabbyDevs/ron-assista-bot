@@ -39,14 +39,6 @@ impl EventHandler for Handler {
             },
             Err(_) => {return;},   
         };
-        if msg.content.is_empty() && msg.attachments.is_empty() && msg.sticker_items.is_empty() && msg.kind == regular && msg.channel_id != 570685869288325168 {
-            if !msg.author.bot && !member.permissions(&ctx).unwrap().moderate_members() {
-                msg.delete(&ctx).await.expect("err deleting msg");
-                let test_msg = msg.channel_id.send_message(&ctx, CreateMessage::new().content(format!("{} sending polls is not allowed!", msg.author.mention()))).await.expect("err sending msg");
-                tokio_sleep(Duration::from_secs(5)).await;
-                test_msg.delete(ctx).await.expect("err");
-            }
-        }
         // if msg.channel_id == 825755301981978685 {
         //     let start = SystemTime::now();
         //     let since_the_epoch = start
