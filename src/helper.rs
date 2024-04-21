@@ -64,13 +64,13 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     Ok((epoch_in_s, epoch_in_s + unix_total, final_string))
 }
 
-pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, i64, i64, String), String> {
+pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, i64, String), String> {
     let regex = Regex::new(r"(Welcome|Join|visit|play)").expect("regex err");
     let quote_regex = Regex::new(r#"\""#).expect("regex err");
 
     let mut badge_count = 0;
-    let mut total_win_rate = 0;
-    let mut win_rate = 0;
+    let mut total_win_rate = 0.0;
+    let mut win_rate = 0.0;
     let mut welcome_badge_count = 0;
     let mut cursor = String::new();
     let mut awarders = IndexMap::new();
@@ -109,7 +109,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         }
 
         for badge_data in data {
-            total_win_rate += badge_data["statistics"]["winRatePercentage"].as_f64().unwrap() as i64;
+            total_win_rate += badge_data["statistics"]["winRatePercentage"].as_f64().unwrap();
             if regex.is_match(badge_data["name"].as_str().unwrap()) {
                 welcome_badge_count += 1;
             }
@@ -119,7 +119,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
     }
 
     if badge_count > 0 {
-        win_rate += (total_win_rate * 100) / badge_count;
+        win_rate += (total_win_rate * 100.0) / badge_count as f64;
     }
 
     let mut awarders_vec: Vec<_> = awarders.into_iter().collect();

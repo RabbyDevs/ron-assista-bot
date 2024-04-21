@@ -25,7 +25,7 @@ pub async fn getinfo(
     let roblox_conversion_errors;
     (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
     if roblox_ids.is_empty() {
-        interaction.channel_id().say(interaction, "Command failed; every user was converted and command had no valid users, meaning you might have inputted the users incorrectly...").await?;
+        interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());
     }
 
@@ -45,7 +45,7 @@ pub async fn getinfo(
                 Ok(data) => data,
                 Err(_) => {
                     badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
-                    (0, 0, 0, String::new())
+                    (0, 0.0, 0, String::new())
                 }
             }
         });
@@ -88,7 +88,7 @@ https://roblox.com/users/{}
         let (badge_count, win_rate, welcome_badge_count, awarders_string) = badge_data.await?;
         channel.say(interaction, format!(r#"\- Badge Info -
 - Badge Count: {}
-- Average Win Rate: {}%
+- Average Win Rate: {:.3}%
 - Welcome Badge Count: {}
 - Top Badge Givers for User: {}"#, badge_count, win_rate, welcome_badge_count, awarders_string)).await?;
     }

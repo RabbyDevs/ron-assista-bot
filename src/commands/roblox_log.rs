@@ -39,7 +39,7 @@ pub async fn robloxlog(
     let roblox_conversion_errors;
     (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
     if roblox_ids.is_empty() {
-        interaction.channel_id().say(interaction, "Command failed; every user was converted and command had no valid users, meaning you might have inputted the users incorrectly...").await?;
+        interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());
     }
 
