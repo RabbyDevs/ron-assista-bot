@@ -155,7 +155,7 @@ pub async fn merge_types(mut roblox_users: Vec<String>, discord_ids: Vec<String>
 
     if roblox_users[0].is_empty() {roblox_users.remove(0);}
     let user_search = RBX_CLIENT.username_user_details(roblox_users.clone(), false).await.unwrap();
-    if user_search.len() != roblox_users.len() {errors_vector.push("Some Roblox users may have failed to process.".to_string());}
+    if user_search.len() != roblox_users.len() {errors_vector.push("One or more Roblox user(s) failed to process, likely failing to be found as a valid Roblox username, make sure you properly input user(s).".to_string());}
     for user in user_search {
         roblox_ids.push(user.id.to_string())
     }
