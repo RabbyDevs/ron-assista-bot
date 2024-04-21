@@ -20,12 +20,14 @@ pub async fn getinfo(
     let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
     let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
-    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty(){
-        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
+    let bad_ones_to_remove = roblox_ids.iter().position(|x| *x == "").unwrap();
+    roblox_ids.remove(bad_ones_to_remove);
+    let roblox_conversion_errors;
+    (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
+    if roblox_ids.is_empty() {
+        interaction.channel_id().say(interaction, "Command failed; every user was converted and command had no valid users, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());
     }
-    let roblox_conversion_errors;
-    (roblox_ids, roblox_conversion_errors) = super::helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
 
     for error in roblox_conversion_errors {
         interaction.channel_id().say(interaction, error).await?;
