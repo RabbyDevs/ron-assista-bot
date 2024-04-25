@@ -34,8 +34,8 @@ pub async fn robloxlog(
     let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
     let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
-    let bad_ones_to_remove = roblox_ids.iter().position(|x| *x == "").unwrap();
-    roblox_ids.remove(bad_ones_to_remove);
+    // let bad_ones_to_remove = roblox_ids.iter().position(|x| *x == "").unwrap();
+    // roblox_ids.remove(bad_ones_to_remove);
     let roblox_conversion_errors;
     (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
     if roblox_ids.is_empty() {
