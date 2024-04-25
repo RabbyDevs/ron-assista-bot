@@ -5,7 +5,6 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
-
 use super::{UserId, CONFIG, REQWEST_CLIENT, RBX_CLIENT};
 
 pub async fn discord_id_to_roblox_id(discord_id: UserId) -> Result<String, String> {
@@ -98,8 +97,8 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         let parsed_json: Value = serde_json::from_str(&response.text().await.unwrap_or_else(|e| panic!("Failed to parse response: {}", e)))
             .unwrap_or_else(|e| panic!("Failed to parse JSON: {}", e));
 
-        let data = parsed_json.get("data").and_then(|d| d.as_array()).unwrap();
         let next_page_cursor = parsed_json.get("nextPageCursor").and_then(|c| c.as_str()).unwrap_or("null");
+        let data = parsed_json.get("data").and_then(|d| d.as_array()).unwrap();
         badge_count += data.len() as i64;
 
         if badge_count != 0 && next_page_cursor != "null" {
