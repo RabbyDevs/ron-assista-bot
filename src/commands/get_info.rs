@@ -40,23 +40,18 @@ pub async fn getinfo(
         if id.is_empty() {continue}
         let mut badge_errors: Vec<String> = Vec::new();
         let id_for_badges = id.clone();
-        let badge_data = tokio::spawn(async move {
-            match helper::badge_data(id_for_badges.clone(), badge_iterations).await {
-                Ok(data) => data,
-                Err(_) => {
-                    badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
-                    (0, 0.0, 0, String::new())
-                }
+        let (badge_count, win_rate, welcome_badge_count, awarders_string) = match helper::badge_data(id_for_badges.clone(), badge_iterations).await {
+            Ok(data) => data,
+            Err(_) => {
+                badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
+                (0, 0.0, 0, String::new())
             }
-        });
+        };
+
         let id_for_friends = id.clone();
-        let friend_count = tokio::spawn(async move {
-            helper::roblox_friend_count(id_for_friends).await
-        });
+        let friend_count = helper::roblox_friend_count(id_for_friends).await;
         let id_for_groups = id.clone();
-        let group_count = tokio::spawn(async move {
-            helper::roblox_group_count(id_for_groups).await
-        });
+        let group_count = helper::roblox_group_count(id_for_groups).await;
 
         let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("u64 err")).await?;
         let description = user_details.description;
@@ -67,8 +62,8 @@ pub async fn getinfo(
         channel.say(interaction, format!("{}", user_details.username)).await?;
         channel.say(interaction, "\\- User ID -").await?;
         channel.say(interaction, format!("{}", user_details.id)).await?;
-        let friend_count = friend_count.await?;
-        let group_count = group_count.await?;
+        let friend_count = friend_count;
+        let group_count = group_count;
         sanitized_description = if sanitized_description.is_empty() {"No description found.".to_string()} else {sanitized_description};
         let mut response = format!(r#"\- Profile Link -
 https://roblox.com/users/{}
@@ -84,8 +79,6 @@ https://roblox.com/users/{}
 {}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count);
         if badge_iterations > default_iterations {response = format!("{}\nGetting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", response, default_iterations);}
         channel.say(interaction, response).await?;
-        
-        let (badge_count, win_rate, welcome_badge_count, awarders_string) = badge_data.await?;
         channel.say(interaction, format!(r#"\- Badge Info -
 - Badge Count: {}
 - Average Win Rate: {:.3}%

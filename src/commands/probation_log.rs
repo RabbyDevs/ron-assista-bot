@@ -32,7 +32,7 @@ pub async fn probationlog(
     let mut duration_errors = Vec::new();
     let raw_durations = duration.split('|').map(str::to_string).collect::<Vec<String>>();
     let mut durations = Vec::new();
-    let duration_handler = tokio::spawn(async move {
+    let duration_handler = {
         for duration in raw_durations {
             let (current_time, unix_timestamp, timestamp_string) = match helper::duration_conversion(duration).await {
                 Ok((current_time, unix_timestamp, timestamp_string)) => (current_time, unix_timestamp, timestamp_string),
@@ -44,13 +44,13 @@ pub async fn probationlog(
             durations.push(format!("[{} (<t:{}:D> - <t:{}:D>)]", timestamp_string, current_time, unix_timestamp))
         }
         (durations, duration_errors)
-    });
+    };
 
     let mut reason_number = 0;
     let mut response_vec = Vec::new();
     for snowflake in users {
         let userid: UserId = UserId::from_str(snowflake).expect("something went wrong.");
-        let roblox_handler = tokio::spawn(async move {
+        let roblox_handler = {
             let mut roblox_errors = Vec::new();
             let roblox_id = match helper::discord_id_to_roblox_id(userid).await {
                 Ok(roblox_id) => roblox_id,
@@ -59,7 +59,7 @@ pub async fn probationlog(
             };
             let roblox_user = if roblox_id != *"null".to_string() {RBX_CLIENT.user_details(roblox_id.parse::<u64>().expect("err")).await.expect("err").username} else { "null".to_string() };
             (roblox_id, roblox_user, roblox_errors)
-        });
+        };
         let user: User = match userid.to_user(interaction).await {
             Ok(user) => user,
             Err(_) => {
@@ -67,13 +67,13 @@ pub async fn probationlog(
                 continue
             }
         };
-        let (roblox_user, roblox_id, roblox_errors) = roblox_handler.await.unwrap();
+        let (roblox_user, roblox_id, roblox_errors) = roblox_handler;
         for error in roblox_errors {interaction.say(error).await?;}
         response_vec.push(format!("{}[{}:{} - {}:{}]\n\n[{}]\n\n", type_string, user.mention(), user.id, roblox_user, roblox_id, reasons[reason_number]));
         if reasons.get(reason_number + 1).is_some() { reason_number += 1 }
     }
 
-    let (durations, duration_errors) = duration_handler.await.unwrap();
+    let (durations, duration_errors) = duration_handler;
     for error in duration_errors {
         interaction.say(error).await?;
     }

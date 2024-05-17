@@ -74,7 +74,7 @@ pub async fn rolelog(
     let reason = reason.unwrap_or_default();
     for snowflake in users {
         let userid: UserId = UserId::from_str(snowflake).expect("something went wrong.");
-        let roblox_handler = tokio::spawn(async move {
+        let roblox_handler = {
             let mut roblox_errors = Vec::new();
             let roblox_id = match helper::discord_id_to_roblox_id(userid).await {
                 Ok(roblox_id) => roblox_id,
@@ -83,7 +83,7 @@ pub async fn rolelog(
             };
             let roblox_user = if roblox_id != *"null".to_string() {RBX_CLIENT.user_details(roblox_id.parse::<u64>().expect("err")).await.expect("err").username} else { "null".to_string() };
             (roblox_id, roblox_user, roblox_errors)
-        });
+        };
         let user: User = match userid.to_user(interaction).await {
             Ok(user) => user,
             Err(_) => {
@@ -91,7 +91,7 @@ pub async fn rolelog(
                 continue
             }
         };
-        let (roblox_user, roblox_id, roblox_errors) = roblox_handler.await.unwrap();
+        let (roblox_user, roblox_id, roblox_errors) = roblox_handler;
         for error in roblox_errors {interaction.say(error).await?;}
         let mut response = format!("[{}]\n[{}]\n[{}:{} - {}:{}]", infraction_type.name(), role.name(), user.mention(), user.id, roblox_user, roblox_id);
         if !reason.is_empty() {response.push_str(format!("\n[{}]", reason).as_str())}
