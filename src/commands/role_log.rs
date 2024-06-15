@@ -49,6 +49,8 @@ pub enum RoleEnums {
     TrustedVIPHost,
     #[name = "Ask for Help Blacklist"]
     AskForHelpBlacklist,
+    #[name = "Content Creator"]
+    ContentCreator,
 }
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum LogType {
