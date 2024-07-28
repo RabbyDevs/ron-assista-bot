@@ -8,16 +8,18 @@ pub async fn update(
     interaction: Context<'_>,
 ) -> Result<(), Error> {
     interaction.reply("Updating!").await?;
-    let output = Command::new("sh")
+    let output = Command::new("nohup")
+        .arg("sh")
         .arg("-c")
         .arg("/root/rabby-stuff/ron-assista-bot/update.sh")
+        .arg("&")
         .output()?;
 
     if output.status.success() {
-        println!("Script executed successfully");
-        println!("Output: {}", String::from_utf8_lossy(&output.stdout));
+        println!("Script started successfully in the background");
+        println!("Initial output: {}", String::from_utf8_lossy(&output.stdout));
     } else {
-        eprintln!("Script failed to execute");
+        eprintln!("Failed to start the script");
         eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
     }
     Ok(())
