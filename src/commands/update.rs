@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use super::{Context, Error};
 
@@ -8,19 +8,16 @@ pub async fn update(
     interaction: Context<'_>,
 ) -> Result<(), Error> {
     interaction.reply("Updating!").await?;
-    let output = Command::new("nohup")
-        .arg("sh")
+    let child = Command::new("sh")
         .arg("-c")
         .arg("/root/rabby-stuff/ron-assista-bot/update.sh")
-        .arg("&")
-        .output()?;
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
 
-    if output.status.success() {
-        println!("Script started successfully in the background");
-        println!("Initial output: {}", String::from_utf8_lossy(&output.stdout));
-    } else {
-        eprintln!("Failed to start the script");
-        eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
-    }
+    println!("Script started with PID: {}", child.id());
+    
+    // Immediately detach by not calling .wait()
     Ok(())
 }
