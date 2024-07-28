@@ -8,19 +8,17 @@ pub async fn update(
     interaction: Context<'_>,
 ) -> Result<(), Error> {
     interaction.reply("Updating!").await?;
-    let output = Command::new("/usr/bin/systemctl")
-        .arg("restart")
-        .arg("ron-assista-bot")
-        .output()
-        .map_err(|e| format!("Failed to execute command: {}", e))?;
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg("/root/rabby-stuff/ron-assista-bot/update.sh")
+        .output()?;
 
     if output.status.success() {
-        println!("ron-assista-bot service restarted successfully.");
-        if !output.stdout.is_empty() {
-            println!("Output: {}", String::from_utf8_lossy(&output.stdout));
-        }
-        Ok(())
+        println!("Script executed successfully");
+        println!("Output: {}", String::from_utf8_lossy(&output.stdout));
     } else {
-        panic!()
+        eprintln!("Script failed to execute");
+        eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
     }
+    Ok(())
 }
