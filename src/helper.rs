@@ -147,19 +147,19 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
     for user in users {
         if user.len() >= 17 && user.chars().all(|c| c.is_digit(10)) {
             let discord_id = match UserId::from_str(user.as_str()) {Ok(id) => id, Err(err) => {
-                errors_vector.push(err.to_string());
+                errors_vector.push(format!("Couldn't find turn discord id string into actual discord id for {}, details:\n{}", user, err));
                 continue
             }};
             let roblox_id_str = match self::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
-                errors_vector.push(err);
+                errors_vector.push(format!("Couldn't find turn discord id into roblox id for {}, details:\n{}", user, err));
                 continue
             }};
             roblox_ids.push(roblox_id_str)
         } else if user.len() < 17 && user.chars().all(|c| c.is_digit(10)) {
             roblox_ids.push(user)
         } else if user.len() < 17 && !user.chars().all(|c| c.is_digit(10)) {
-            let user_search = match RBX_CLIENT.username_user_details(vec![user], false).await {Ok(id) => id, Err(err) => {
-                errors_vector.push(err.to_string());
+            let user_search = match RBX_CLIENT.username_user_details(vec![user.clone()], false).await {Ok(id) => id, Err(err) => {
+                errors_vector.push(format!("Couldn't find user details for {}, details:\n{}", user, err));
                 continue
             }};
             for details in user_search {
