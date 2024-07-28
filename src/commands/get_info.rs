@@ -20,13 +20,12 @@ pub async fn getinfo(
     let roblox_ids: Vec<String>;
     let roblox_conversion_errors: Vec<String>;
     (roblox_ids, roblox_conversion_errors) = helper::merge_types(users).await;
+    for error in roblox_conversion_errors {
+        interaction.channel_id().say(interaction, error).await?;
+    }
     if roblox_ids.is_empty() {
         interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());
-    }
-
-    for error in roblox_conversion_errors {
-        interaction.channel_id().say(interaction, error).await?;
     }
     let iterations_exists = badge_max_iterations.is_some();
     let channel = interaction.channel_id();

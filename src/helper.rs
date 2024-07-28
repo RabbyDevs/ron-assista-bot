@@ -217,7 +217,7 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
             roblox_ids.push(roblox_id_str)
         } else if user.len() < 17 && user.chars().all(|c| c.is_digit(10)) {
             roblox_ids.push(user)
-        } else if user.len() < 17 && !user.chars().all(|c| c.is_digit(10)) {
+        } else if !user.chars().all(|c| c.is_digit(10)) {
             let user_search = match RBX_CLIENT.username_user_details(vec![user.clone()], false).await {Ok(id) => id, Err(err) => {
                 errors_vector.push(format!("Couldn't find user details for {}, details:\n{}", user, err));
                 continue
