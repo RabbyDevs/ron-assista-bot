@@ -1,15 +1,15 @@
-use std::{env, time::{Duration, SystemTime, UNIX_EPOCH}};
+use std::env;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::{all::{Message, MessageId, MessageType, Ready}, async_trait};
+use ::serenity::{all::Ready, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
 use std::str::FromStr;
 
 mod helper;
 mod commands;
-use commands::{discord_log, probation_log, roblox_log, role_log, get_info};
+use commands::{discord_log, get_info, probation_log, roblox_log, role_log, update};
 
 static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
@@ -29,31 +29,6 @@ impl EventHandler for Handler {
     async fn ready(&self, _: serenity::prelude::Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
-    async fn message(&self, ctx: serenity::prelude::Context, msg: Message) {
-        let regular = MessageType::Regular;
-        let member = match msg.member(&ctx).await {
-            Ok(member) => {
-                member
-            },
-            Err(_) => {return;},   
-        };
-        // if msg.channel_id == 825755301981978685 {
-        //     let start = SystemTime::now();
-        //     let since_the_epoch = start
-        //         .duration_since(UNIX_EPOCH)
-        //         .expect("Time went backwards");
-        //     let epoch_in_s = since_the_epoch.as_secs();
-        // }
-    }
-
-    // async fn message_delete(&self, ctx: serenity::prelude::Context, channelid: serenity::all::ChannelId, msg_id: MessageId, _: Option<serenity::all::GuildId>) {
-
-    // }
-    // async fn reaction_add(&self, ctx: serenity::prelude::Context, add_reaction: serenity::Reaction) {
-    //     if add_reaction.member.unwrap().permissions(&ctx).unwrap().administrator() {
-
-    //     }
-    // }
 }
 
 #[tokio::main]
@@ -72,7 +47,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo()],
+            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

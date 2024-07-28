@@ -59,11 +59,12 @@ pub enum LogType {
 }
 
 #[poise::command(slash_command, prefix_command)]
+/// Makes a role addition or deletion log based on the Discord IDs inputted.
 pub async fn rolelog(
     interaction: Context<'_>,
+    #[description = "Users for the command, accepts only Discord ids."] users: String,
     #[description = "The role."] #[rename = "type"] infraction_type: LogType,
     #[description = "The role."] #[rename = "role"] role: RoleEnums,
-    #[description = "User ids for the command."] users: String,
     #[description = "Optional reason for giving the role."] reason: Option<String>,
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;

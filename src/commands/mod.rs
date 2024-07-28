@@ -4,3 +4,4 @@ pub mod discord_log;
 pub mod probation_log;
 pub mod role_log;
 pub mod get_info;
+pub mod update;

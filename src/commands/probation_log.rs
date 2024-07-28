@@ -12,9 +12,10 @@ pub enum ProbationTypes {
 }
 
 #[poise::command(slash_command, prefix_command)]
+/// Makes a probation log based on the Discord IDs inputted.
 pub async fn probationlog(
     interaction: Context<'_>,
-    #[description = "User ids for the command."] users: String,
+    #[description = "Users for the command, only accepts Discord ids."] users: String,
     #[description = "Type of infraction."] #[rename = "type"] infraction_type: ProbationTypes,
     #[description = "Reason for infraction."] reason: String,
     #[description = "Multimessage mode allows creation of multiple logs from 1 command."] duration: String

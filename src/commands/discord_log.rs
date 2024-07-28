@@ -15,6 +15,7 @@ pub enum DiscordInfTypes {
 }
 
 #[poise::command(slash_command, prefix_command)]
+/// Makes a Discord infraction log based on the Discord IDs inputted.
 pub async fn discordlog(
     interaction: Context<'_>,
     #[description = "User ids for the command."] users: String,

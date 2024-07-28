@@ -1,6 +1,6 @@
 use poise::ChoiceParameter;
 
-use super::{Context, Error, helper, RBX_CLIENT, NUMBER_REGEX};
+use super::{Context, Error, helper, RBX_CLIENT};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum RobloxInfTypes {
@@ -14,30 +14,23 @@ pub enum RobloxInfTypes {
     Warn
 }
 
-// Command for making roblox-side logs
 #[poise::command(slash_command, prefix_command)]
+/// Creates a log for a ingame infraction. **Do not input Discord IDs as a test, please.**
 #[warn(clippy::too_many_arguments)]
 pub async fn robloxlog(
     interaction: Context<'_>,
+    #[description = "Users for the command, accepts Discord ids, ROBLOX users and ROBLOX ids."] users: String,
     #[description = "Type of infraction."] #[rename = "type"] infraction_type: RobloxInfTypes,
     #[description = "Reason for infraction, split with |."] reason: String,
-    #[description = "Roblox Usernames for the command, seperate with spaces."] roblox_users: Option<String>,
-    #[description = "Roblox IDs for the command, seperate with spaces."] roblox_ids: Option<String>,
-    #[description = "Discord IDs for the command, seperate with spaces."] discord_ids: Option<String>,
     #[description = "Note for the infraction, split with |."] note: Option<String>,
     #[description = "Multimessage mode allows creation of multiple logs from 1 command."] multimessage: Option<bool>
 ) -> Result<(), Error> {
     interaction.reply("Making logs...").await?;
     let multimessage = multimessage.unwrap_or_default();
-    let roblox_users = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
-    let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
-    let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
-    let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
-    let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
-    // let bad_ones_to_remove = roblox_ids.iter().position(|x| *x == "").unwrap();
-    // roblox_ids.remove(bad_ones_to_remove);
+    let users: Vec<String> = users.split(' ').map(str::to_string).collect::<Vec<String>>();
     let roblox_conversion_errors;
-    (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
+    let roblox_ids;
+    (roblox_ids, roblox_conversion_errors) = helper::merge_types(users).await;
     if roblox_ids.is_empty() {
         interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());

@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serde_json::Value;
@@ -63,16 +62,14 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     Ok((epoch_in_s, epoch_in_s + unix_total, final_string))
 }
 
-pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, i64, String), String> {
-    let regex = Regex::new(r"(Welcome|Join|visit|play)").expect("regex err");
+pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, String), String> {
     let quote_regex = Regex::new(r#"\""#).expect("regex err");
 
     let mut badge_count = 0;
     let mut total_win_rate = 0.0;
     let mut win_rate = 0.0;
-    let mut welcome_badge_count = 0;
     let mut cursor = String::new();
-    let mut awarders = IndexMap::new();
+    let mut awarders = HashMap::new();
 
     for _ in 0..badge_iterations {
         if cursor == "null" {
@@ -109,9 +106,6 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
 
         for badge_data in data {
             total_win_rate += badge_data["statistics"]["winRatePercentage"].as_f64().unwrap();
-            if regex.is_match(badge_data["name"].as_str().unwrap()) {
-                welcome_badge_count += 1;
-            }
             let awarder_index = badge_data["awarder"]["id"].as_u64().unwrap();
             awarders.entry(awarder_index).and_modify(|e| *e += 1).or_insert(1);
         }
@@ -131,7 +125,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
         awarders_vec.iter().map(|(id, count)| format!("\n - {}: {}", id, count)).collect()
     };
 
-    Ok((badge_count, win_rate, welcome_badge_count, awarders_string))
+    Ok((badge_count, win_rate, awarders_string))
 }
 
 pub async fn roblox_friend_count(roblox_id: String) -> usize {
@@ -146,28 +140,32 @@ pub async fn roblox_group_count(roblox_id: String) -> usize {
     parsed_json["data"].as_array().unwrap().len()
 }
 
-pub async fn merge_types(mut roblox_users: Vec<String>, discord_ids: Vec<String>, mut roblox_ids: Vec<String>) -> (Vec<String>, Vec<String>) {
-    let mut errors_vector = Vec::new();
-    if roblox_users[0].is_empty() && discord_ids[0].is_empty() && roblox_ids[0].is_empty() {
-        errors_vector.push("Command failed; no users inputted, or users improperly inputted.".to_string())
-    }
+pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
+    let mut roblox_ids: Vec<String> = Vec::new();
+    let mut errors_vector: Vec<String> = Vec::new();
 
-    if roblox_users[0].is_empty() {roblox_users.remove(0);}
-    let user_search = RBX_CLIENT.username_user_details(roblox_users.clone(), false).await.unwrap();
-    if user_search.len() != roblox_users.len() {errors_vector.push("One or more Roblox user(s) failed to process, likely failing to be found as a valid Roblox username, make sure you properly input user(s).".to_string());}
-    for user in user_search {
-        roblox_ids.push(user.id.to_string())
-    }
-
-    for id in discord_ids {
-        if id.is_empty() {continue}
-        let discord_id = UserId::from_str(id.as_str()).expect("err");
-        let roblox_id_str = match self::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
-            errors_vector.push(err);
-            continue
-
-        }};
-        roblox_ids.push(roblox_id_str);
+    for user in users {
+        if user.len() >= 17 && user.chars().all(|c| c.is_digit(10)) {
+            let discord_id = match UserId::from_str(user.as_str()) {Ok(id) => id, Err(err) => {
+                errors_vector.push(err.to_string());
+                continue
+            }};
+            let roblox_id_str = match self::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
+                errors_vector.push(err);
+                continue
+            }};
+            roblox_ids.push(roblox_id_str)
+        } else if user.len() < 17 && user.chars().all(|c| c.is_digit(10)) {
+            roblox_ids.push(user)
+        } else if user.len() < 17 && !user.chars().all(|c| c.is_digit(10)) {
+            let user_search = match RBX_CLIENT.username_user_details(vec![user], false).await {Ok(id) => id, Err(err) => {
+                errors_vector.push(err.to_string());
+                continue
+            }};
+            for details in user_search {
+                roblox_ids.push(details.id.to_string())
+            }
+        }
     }
     (roblox_ids, errors_vector)
 }

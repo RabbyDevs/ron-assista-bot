@@ -1,29 +1,25 @@
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use chrono::{DateTime, Local};
 use regex::Regex;
 
-use super::{Context, Error, helper, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX};
+use super::{Context, Error, helper, FromStr, RBX_CLIENT, CONFIG};
 
 #[poise::command(slash_command, prefix_command)]
+/// Gets the ROBLOX info of the users inputted. Do not input Discord IDs as a test, please.
 pub async fn getinfo(
     interaction: Context<'_>,
-    #[description = "Roblox Usernames for the command, seperate with spaces."] roblox_users: Option<String>,
-    #[description = "Roblox IDs for the command, seperate with spaces."] roblox_ids: Option<String>,
-    #[description = "Discord IDs for the command, seperate with spaces."] discord_ids: Option<String>,
+    #[description = "Users for the command, accepts Discord ids, ROBLOX users and ROBLOX ids."] users: String,
     #[description = "How many badge pages should the command get?"] badge_max_iterations: Option<i64>,
 ) -> Result<(), Error> {
     interaction.reply("Finding user info, standby!").await?;
     let new_line_regex = Regex::from_str("/(?:\r?\n){4,}/gm").expect("regex err");
     let default_iterations: i64 = CONFIG.default_badge_iterations;
 
-    let roblox_users: Vec<String> = roblox_users.unwrap_or_default().split(' ').map(str::to_string).collect::<Vec<String>>();
-    let purified_users = NUMBER_REGEX.replace_all(discord_ids.unwrap_or_default().as_str(), "").to_string();
-    let discord_ids = purified_users.split(' ').map(str::to_string).collect::<Vec<String>>();
-    let purified_roblox_ids = NUMBER_REGEX.replace_all(roblox_ids.unwrap_or_default().as_str(), "").to_string();
-    let mut roblox_ids = purified_roblox_ids.split(' ').map(str::to_string).collect::<Vec<String>>();
-    // let bad_ones_to_remove = roblox_ids.iter().position(|x| *x == "").unwrap();
-    // roblox_ids.remove(bad_ones_to_remove);
-    let roblox_conversion_errors;
-    (roblox_ids, roblox_conversion_errors) = helper::merge_types(roblox_users, discord_ids, roblox_ids).await;
+    let users: Vec<String> = users.split(' ').map(str::to_string).collect::<Vec<String>>();
+    let roblox_ids: Vec<String>;
+    let roblox_conversion_errors: Vec<String>;
+    (roblox_ids, roblox_conversion_errors) = helper::merge_types(users).await;
     if roblox_ids.is_empty() {
         interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
         return Ok(());
@@ -45,7 +41,7 @@ pub async fn getinfo(
                 Ok(data) => data,
                 Err(_) => {
                     badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
-                    (0, 0.0, 0, String::new())
+                    (0, 0.0, String::new())
                 }
             }
         });
@@ -63,6 +59,20 @@ pub async fn getinfo(
         let mut sanitized_description = new_line_regex.replace(description.as_str(), "").to_string();
         let created_at: DateTime<Local> = DateTime::from_str(user_details.created_at.as_str()).expect("err");
         let created_at_timestamp = created_at.timestamp();
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| format!("Error getting current time: {}", e))?;
+
+        let difference = now - Duration::from_secs(created_at_timestamp as u64);
+        
+        let new_account = difference < Duration::from_secs(60 * 24 * 60 * 60);
+
+        let mut new_account_message = "";
+        if new_account {
+            new_account_message = ", **Account is new, below 60 days old.**"
+        }
+
         channel.say(interaction, "\\- Username -").await?;
         channel.say(interaction, format!("{}", user_details.username)).await?;
         channel.say(interaction, "\\- User ID -").await?;
@@ -77,20 +87,19 @@ https://roblox.com/users/{}
 \- Display Name -
 {}
 \- Account Creation Date -
-<t:{}:D>
+<t:{}:D>{}
 \- Friend Count -
 {}
 \- Group Count -
-{}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, friend_count, group_count);
+{}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, new_account_message, friend_count, group_count);
         if badge_iterations > default_iterations {response = format!("{}\nGetting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", response, default_iterations);}
         channel.say(interaction, response).await?;
         
-        let (badge_count, win_rate, welcome_badge_count, awarders_string) = badge_data.await?;
+        let (badge_count, win_rate, awarders_string) = badge_data.await?;
         channel.say(interaction, format!(r#"\- Badge Info -
 - Badge Count: {}
 - Average Win Rate: {:.3}%
-- Welcome Badge Count: {}
-- Top Badge Givers for User: {}"#, badge_count, win_rate, welcome_badge_count, awarders_string)).await?;
+- Top Badge Givers for User: {}"#, badge_count, win_rate, awarders_string)).await?;
     }
     Ok(())
 }
