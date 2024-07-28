@@ -1,3 +1,4 @@
+#![allow(nonstandard_style)]
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serde_json::Value;
@@ -62,61 +63,121 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     Ok((epoch_in_s, epoch_in_s + unix_total, final_string))
 }
 
+use futures::stream::{self, StreamExt};
+use indexmap::IndexMap;
+use serde::Deserialize;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+#[derive(Deserialize)]
+struct BadgeResponse {
+    nextPageCursor: Option<String>,
+    data: Vec<BadgeData>,
+}
+
+#[derive(Deserialize)]
+struct BadgeData {
+    statistics: BadgeStatistics,
+    awarder: Awarder,
+}
+
+#[derive(Deserialize)]
+struct BadgeStatistics {
+    winRatePercentage: f64,
+}
+
+#[derive(Deserialize)]
+struct Awarder {
+    id: u64,
+}
+
 pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, String), String> {
-    let quote_regex = Regex::new(r#"\""#).expect("regex err");
+    let badge_count = Arc::new(Mutex::new(0));
+    let total_win_rate = Arc::new(Mutex::new(0.0));
+    let awarders = Arc::new(Mutex::new(IndexMap::new()));
+    let roblox_id = Arc::new(roblox_id);
 
-    let mut badge_count = 0;
-    let mut total_win_rate = 0.0;
-    let mut win_rate = 0.0;
-    let mut cursor = String::new();
-    let mut awarders = HashMap::new();
+    let mut cursors = vec![String::new()];
+    let mut iteration = 0;
 
-    for _ in 0..badge_iterations {
-        if cursor == "null" {
-            break;
+    while iteration < badge_iterations && !cursors.is_empty() {
+        let chunk_size = std::cmp::min(cursors.len(), 10);
+        let chunk: Vec<_> = cursors.drain(..chunk_size).collect();
+
+        let results = stream::iter(chunk)
+            .map(|cursor| {
+                let roblox_id = Arc::clone(&roblox_id);
+                let badge_count = Arc::clone(&badge_count);
+                let total_win_rate = Arc::clone(&total_win_rate);
+                let awarders = Arc::clone(&awarders);
+                async move {
+                    let url = format!(
+                        "https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc{}",
+                        roblox_id,
+                        if cursor.is_empty() { String::new() } else { format!("&cursor={}", cursor) }
+                    );
+
+                    let response = REQWEST_CLIENT.get(&url)
+                        .send()
+                        .await
+                        .map_err(|e| format!("Request failed: {}", e))?;
+
+                    if !response.status().is_success() {
+                        return Err(format!("Request failed with status: {}", response.status()));
+                    }
+
+                    let text = response.text().await
+                        .map_err(|e| format!("Failed to get response text: {}", e))?;
+
+                    let json: Value = serde_json::from_str(&text)
+                        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+                    let badge_response: BadgeResponse = serde_json::from_value(json)
+                        .map_err(|e| format!("Failed to deserialize BadgeResponse: {}", e))?;
+
+                    let mut badge_count = badge_count.lock().await;
+                    *badge_count += badge_response.data.len() as i64;
+
+                    let mut total_win_rate = total_win_rate.lock().await;
+                    let mut awarders = awarders.lock().await;
+
+                    for badge in badge_response.data {
+                        *total_win_rate += badge.statistics.winRatePercentage;
+                        *awarders.entry(badge.awarder.id).or_insert(0) += 1;
+                    }
+
+                    Ok(badge_response.nextPageCursor)
+                }
+            })
+            .buffer_unordered(chunk_size)
+            .collect::<Vec<_>>()
+            .await;
+
+        for result in results {
+            match result {
+                Ok(Some(next_cursor)) if !next_cursor.is_empty() => {
+                    cursors.push(next_cursor);
+                },
+                Ok(_) => {}, // No more pages
+                Err(e) => return Err(e),
+            }
         }
 
-        let url = if cursor.is_empty() {
-            format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc", roblox_id)
-        } else {
-            format!("https://badges.roblox.com/v1/users/{}/badges?limit=100&sortOrder=Asc&cursor={}", roblox_id, cursor)
-        };
-
-        let response = REQWEST_CLIENT.get(&url)
-            .send()
-            .await
-            .unwrap_or_else(|e| panic!("Request failed: {}", e));
-
-        if !response.status().is_success() {
-            return Err("Request failed.".to_string());
-        }
-
-        let parsed_json: Value = serde_json::from_str(&response.text().await.unwrap_or_else(|e| panic!("Failed to parse response: {}", e)))
-            .unwrap_or_else(|e| panic!("Failed to parse JSON: {}", e));
-
-        let next_page_cursor = parsed_json.get("nextPageCursor").and_then(|c| c.as_str()).unwrap_or("null");
-        let data = parsed_json.get("data").and_then(|d| d.as_array()).unwrap();
-        badge_count += data.len() as i64;
-
-        if badge_count != 0 && next_page_cursor != "null" {
-            cursor = quote_regex.replace(next_page_cursor, "").to_string();
-        } else {
-            cursor = "null".to_string();
-        }
-
-        for badge_data in data {
-            total_win_rate += badge_data["statistics"]["winRatePercentage"].as_f64().unwrap();
-            let awarder_index = badge_data["awarder"]["id"].as_u64().unwrap();
-            awarders.entry(awarder_index).and_modify(|e| *e += 1).or_insert(1);
-        }
+        iteration += chunk_size as i64;
     }
 
-    if badge_count > 0 {
-        win_rate += (total_win_rate * 100.0) / badge_count as f64;
-    }
+    let badge_count = *badge_count.lock().await;
+    let total_win_rate = *total_win_rate.lock().await;
+    let awarders = awarders.lock().await;
 
-    let mut awarders_vec: Vec<_> = awarders.into_iter().collect();
-    awarders_vec.sort_by(|(_, a), (_, b)| b.cmp(a));
+    let win_rate = if badge_count > 0 {
+        (total_win_rate * 100.0) / badge_count as f64
+    } else {
+        0.0
+    };
+
+    let mut awarders_vec: Vec<_> = awarders.iter().map(|(k, v)| (*k, *v)).collect();
+    awarders_vec.sort_unstable_by(|(_, a), (_, b)| b.cmp(a));
     awarders_vec.truncate(5);
 
     let awarders_string = if awarders_vec.is_empty() {
@@ -127,7 +188,6 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
 
     Ok((badge_count, win_rate, awarders_string))
 }
-
 pub async fn roblox_friend_count(roblox_id: String) -> usize {
     let response = REQWEST_CLIENT.get(format!("https://friends.roblox.com/v1/users/{}/friends", roblox_id)).send().await.expect("request err");
     let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
