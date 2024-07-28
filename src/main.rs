@@ -2,7 +2,7 @@ use std::env;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::{all::Ready, async_trait};
+use ::serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
 use std::str::FromStr;
@@ -33,7 +33,6 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    env::set_var("RUST_BACKTRACE", "full");
     let discord_api_key = CONFIG.discord_api_key;
     // Set gateway intents, which decides what events the bot will be notified about
     let intents = GatewayIntents::GUILDS
@@ -51,6 +50,10 @@ async fn main() {
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
+            let activity = ActivityData::custom(format!("Running on v{}!", env!("CARGO_PKG_VERSION")));
+            let status = OnlineStatus::Online;
+    
+            ctx.set_presence(Some(activity), status);
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {})
