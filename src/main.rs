@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 mod helper;
 mod commands;
-use commands::{discord_log, get_info, probation_log, roblox_log, role_log, update};
+use commands::{discord_info, discord_log, get_info, probation_log, roblox_log, role_log, update};
 
 static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
@@ -33,7 +33,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
-    let discord_api_key = CONFIG.discord_api_key;
+    let discord_api_key = CONFIG.main.discord_api_key;
     // Set gateway intents, which decides what events the bot will be notified about
     let intents = GatewayIntents::GUILDS
         | GatewayIntents::GUILD_PRESENCES
@@ -46,13 +46,13 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update()],
+            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update(), discord_info::discordinfo()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
             let activity = ActivityData::custom(format!("Running on v{}!", env!("CARGO_PKG_VERSION")));
             let status = OnlineStatus::Online;
-    
+
             ctx.set_presence(Some(activity), status);
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;

@@ -1,8 +1,11 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use chrono::{DateTime, Local};
 use regex::Regex;
-
+use futures::future;
+use serenity::all::EditMessage;
+use serenity::builder::{CreateEmbed, CreateEmbedFooter};
+use serenity::model::colour::Colour;
+use serenity::builder::CreateMessage;
 use super::{Context, Error, helper, FromStr, RBX_CLIENT, CONFIG};
 
 #[poise::command(slash_command, prefix_command)]
@@ -12,93 +15,82 @@ pub async fn getinfo(
     #[description = "Users for the command, accepts Discord ids, ROBLOX users and ROBLOX ids."] users: String,
     #[description = "How many badge pages should the command get?"] badge_max_iterations: Option<i64>,
 ) -> Result<(), Error> {
-    interaction.reply("Finding user info, standby!").await?;
-    let new_line_regex = Regex::from_str("/(?:\r?\n){4,}/gm").expect("regex err");
-    let default_iterations: i64 = CONFIG.default_badge_iterations;
+    interaction.reply("Getting user info, please standby!").await?;
+    let new_line_regex = Regex::new(r"(?:\r?\n){4,}").expect("Invalid regex");
+    let badge_iterations = badge_max_iterations.unwrap_or(CONFIG.main.default_badge_iterations);
 
-    let users: Vec<String> = users.split(' ').map(str::to_string).collect::<Vec<String>>();
-    let roblox_ids: Vec<String>;
-    let roblox_conversion_errors: Vec<String>;
-    (roblox_ids, roblox_conversion_errors) = helper::merge_types(users).await;
-    for error in roblox_conversion_errors {
-        interaction.channel_id().say(interaction, error).await?;
+    let users: Vec<String> = users.split_whitespace().map(str::to_string).collect();
+    let (roblox_ids, roblox_conversion_errors) = helper::merge_types(users).await;
+
+    if !roblox_conversion_errors.is_empty() {
+        interaction.channel_id().say(&interaction.http(), &roblox_conversion_errors.join("\n")).await?;
     }
+
     if roblox_ids.is_empty() {
-        interaction.channel_id().say(interaction, "Command failed; every user was converted and no valid users were found, meaning you might have inputted the users incorrectly...").await?;
+        interaction.say("Command failed; no valid users were found. You might have inputted the users incorrectly.").await?;
         return Ok(());
     }
-    let iterations_exists = badge_max_iterations.is_some();
-    let channel = interaction.channel_id();
-    let badge_iterations: i64 = if iterations_exists {badge_max_iterations.unwrap()} else {default_iterations};
 
     for id in roblox_ids {
-        if id.is_empty() {continue}
-        let mut badge_errors: Vec<String> = Vec::new();
-        let id_for_badges = id.clone();
-        let badge_data = tokio::spawn(async move {
-            match helper::badge_data(id_for_badges.clone(), badge_iterations).await {
-                Ok(data) => data,
-                Err(_) => {
-                    badge_errors.push(format!("Something went wrong when getting badges for user {}", id_for_badges));
-                    (0, 0.0, String::new())
-                }
-            }
-        });
-        let id_for_friends = id.clone();
-        let friend_count = tokio::spawn(async move {
-            helper::roblox_friend_count(id_for_friends).await
-        });
-        let id_for_groups = id.clone();
-        let group_count = tokio::spawn(async move {
-            helper::roblox_group_count(id_for_groups).await
-        });
+        if id.is_empty() { continue; }
 
-        let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("u64 err")).await?;
-        let description = user_details.description;
-        let mut sanitized_description = new_line_regex.replace(description.as_str(), "").to_string();
-        let created_at: DateTime<Local> = DateTime::from_str(user_details.created_at.as_str()).expect("err");
+        let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("Invalid user ID")).await?;
+
+        interaction.channel_id().say(&interaction.http(), "### Username").await?;
+        interaction.channel_id().say(&interaction.http(), format!("{}", user_details.username)).await?;
+        interaction.channel_id().say(&interaction.http(), "### User ID").await?;
+        interaction.channel_id().say(&interaction.http(), format!("{}", user_details.id)).await?;
+
+        // Prepare initial embed with basic info
+        let footer = CreateEmbedFooter::new("Powered by RON Assista Bot")
+        .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+        let mut embed = CreateEmbed::default()
+            .title("Extra ROBLOX Information")
+            .color(Colour::from_rgb(117, 31, 10))
+            .footer(footer)
+            .field("User Link", format!("https://roblox.com/users/{}", user_details.id), false);
+
+        let sanitized_description = new_line_regex.replace(&user_details.description, "").into_owned();
+        let created_at: DateTime<Local> = DateTime::from_str(&user_details.created_at).expect("Invalid date");
         let created_at_timestamp = created_at.timestamp();
 
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|e| format!("Error getting current time: {}", e))?;
+        let account_age = SystemTime::now().duration_since(UNIX_EPOCH)? - Duration::from_secs(created_at_timestamp as u64);
+        let new_account_message = if account_age < Duration::from_secs(60 * 24 * 60 * 60) {
+            ", **Account is new, below 60 days old.**"
+        } else {
+            ""
+        };
 
-        let difference = now - Duration::from_secs(created_at_timestamp as u64);
-        
-        let new_account = difference < Duration::from_secs(60 * 24 * 60 * 60);
+        embed = embed
+            .field("Display Name", user_details.display_name, false)
+            .field("Description", sanitized_description.is_empty().then(|| "No description found.").unwrap_or(&sanitized_description), false)
+            .field("Account Creation", format!("<t:{}:D>{}", created_at_timestamp, new_account_message), false);
 
-        let mut new_account_message = "";
-        if new_account {
-            new_account_message = ", **Account is new, below 60 days old.**"
+        let mut init_message = interaction.channel_id().send_message(&interaction.http(), CreateMessage::new().add_embed(embed.clone())).await?;
+
+        let (friend_count, group_count, badge_data) = future::join3(
+            helper::roblox_friend_count(&id),
+            helper::roblox_group_count(&id),
+            helper::badge_data(id.clone(), badge_iterations)
+        ).await;
+
+        if let (Ok(friend_count), Ok(group_count)) = (friend_count, group_count) {
+            embed = embed
+                .field("Friend Count", friend_count.to_string(), false)
+                .field("Group Count", group_count.to_string(), false);
         }
 
-        channel.say(interaction, "\\- Username -").await?;
-        channel.say(interaction, format!("{}", user_details.username)).await?;
-        channel.say(interaction, "\\- User ID -").await?;
-        channel.say(interaction, format!("{}", user_details.id)).await?;
-        let friend_count = friend_count.await?;
-        let group_count = group_count.await?;
-        sanitized_description = if sanitized_description.is_empty() {"No description found.".to_string()} else {sanitized_description};
-        let mut response = format!(r#"\- Profile Link -
-https://roblox.com/users/{}
-\- Description -
-{}
-\- Display Name -
-{}
-\- Account Creation Date -
-<t:{}:D>{}
-\- Friend Count -
-{}
-\- Group Count -
-{}"#, user_details.id, sanitized_description, user_details.display_name, created_at_timestamp, new_account_message, friend_count, group_count);
-        if badge_iterations > default_iterations {response = format!("{}\nGetting badge info with more than {} (default, recommended) iterations, *this might take longer than usual.*", response, default_iterations);}
-        channel.say(interaction, response).await?;
-        
-        let (badge_count, win_rate, awarders_string) = badge_data.await?;
-        channel.say(interaction, format!(r#"\- Badge Info -
-- Badge Count: {}
-- Average Win Rate: {:.3}%
-- Top Badge Givers for User: {}"#, badge_count, win_rate, awarders_string)).await?;
+        init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
+
+        if let Ok((badge_count, win_rate, awarders_string)) = badge_data {
+            embed = embed
+                .field("Badge Count", badge_count.to_string(), false)
+                .field("Average Win Rate", format!("{:.3}%", win_rate), false)
+                .field("Top Badge Givers", awarders_string, false);
+        }
+
+        init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
     }
+
     Ok(())
 }

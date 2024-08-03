@@ -5,3 +5,6 @@ pub mod probation_log;
 pub mod role_log;
 pub mod get_info;
 pub mod update;
+pub mod discord_info;
+pub mod game_ban;
+pub mod game_warn;

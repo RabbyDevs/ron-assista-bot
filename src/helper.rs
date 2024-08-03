@@ -9,7 +9,7 @@ use super::{UserId, CONFIG, REQWEST_CLIENT, RBX_CLIENT};
 
 pub async fn discord_id_to_roblox_id(discord_id: UserId) -> Result<String, String> {
     let quote_regex = Regex::new("/\"/gi").expect("regex err");
-    let bloxlink_api_key: HeaderValue = CONFIG.bloxlink_api_key.parse::<HeaderValue>().expect("err");
+    let bloxlink_api_key: HeaderValue = CONFIG.main.bloxlink_api_key.parse::<HeaderValue>().expect("err");
 
     let url = format!("https://api.blox.link/v4/public/discord-to-roblox/{}", discord_id.to_string());
     let response = REQWEST_CLIENT.get(url)
@@ -188,16 +188,29 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
 
     Ok((badge_count, win_rate, awarders_string))
 }
-pub async fn roblox_friend_count(roblox_id: String) -> usize {
-    let response = REQWEST_CLIENT.get(format!("https://friends.roblox.com/v1/users/{}/friends", roblox_id)).send().await.expect("request err");
-    let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
-    parsed_json["data"].as_array().unwrap().len()
+
+pub async fn roblox_friend_count(roblox_id: &str) -> Result<usize, String> {
+    let url = format!("https://friends.roblox.com/v1/users/{}/friends", roblox_id);
+    let response = REQWEST_CLIENT.get(&url).send().await.unwrap();
+    let response_text = response.text().await.unwrap();
+    
+    let parsed_json: Value = serde_json::from_str(&response_text).unwrap();
+    
+    Ok(parsed_json["data"].as_array()
+        .ok_or_else(|| "Data is not an array".to_string())?
+        .len())
 }
 
-pub async fn roblox_group_count(roblox_id: String) -> usize {
-    let response = REQWEST_CLIENT.get(format!("https://groups.roblox.com/v2/users/{}/groups/roles?includeLocked=true", roblox_id)).send().await.expect("request err");
-    let parsed_json: Value = serde_json::from_str(response.text().await.unwrap().as_str()).unwrap();
-    parsed_json["data"].as_array().unwrap().len()
+pub async fn roblox_group_count(roblox_id: &str) -> Result<usize, String> {
+    let url = format!("https://groups.roblox.com/v2/users/{}/groups/roles?includeLocked=true", roblox_id);
+    let response = REQWEST_CLIENT.get(&url).send().await.unwrap();
+    let response_text = response.text().await.unwrap();
+    
+    let parsed_json: Value = serde_json::from_str(&response_text).unwrap();
+    
+    Ok(parsed_json["data"].as_array()
+        .ok_or_else(|| "Data is not an array".to_string())?
+        .len())
 }
 
 pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
