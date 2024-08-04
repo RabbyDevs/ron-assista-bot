@@ -31,9 +31,9 @@ pub async fn getinfo(
     }
 
     for id in roblox_ids {
+        let badge_data_future = helper::badge_data(id.clone(), badge_iterations);
         let friend_count_future = helper::roblox_friend_count(&id);
         let group_count_future = helper::roblox_group_count(&id);
-        let badge_data_future = helper::badge_data(id.clone(), badge_iterations);
         if id.is_empty() { continue; }
 
         let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("Invalid user ID")).await?;

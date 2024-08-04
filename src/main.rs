@@ -1,11 +1,12 @@
-use std::env;
+use std::{env, io::Write, process::Command, str::FromStr, vec};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
+use ::serenity::all::EditMessage;
+use serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
-use std::str::FromStr;
+use reqwest::Client;
 
 mod helper;
 mod commands;
@@ -15,7 +16,7 @@ static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
 }
 static RBX_CLIENT: Lazy<roboat::Client> = Lazy::new(|| ClientBuilder::new().build());
-static REQWEST_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| reqwest::Client::new());
+static REQWEST_CLIENT: Lazy<Client> = Lazy::new(|| Client::new());
 static NUMBER_REGEX: Lazy<Regex> = Lazy::new(|| Regex::from_str(r"[^\d\s]").expect("err"));
 
 struct Data {} // User data, which is stored and accessible in all command invocations
@@ -23,18 +24,70 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 struct Handler;
+use uuid::Uuid;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, _: serenity::prelude::Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
     }
+
+    async fn message(&self, ctx: serenity::prelude::Context, new_message: serenity::all::Message) {
+        if !new_message.attachments.is_empty() {
+            for attachment in &new_message.attachments {
+                if let Some(content_type) = &attachment.content_type {
+                    if content_type == "video/x-ms-wmv" || content_type == "video/x-matroska" {
+                        let new_message = new_message.clone();
+                        let attachment = attachment.clone();
+                        let ctx = ctx.clone();
+                        tokio::spawn(async move {
+                            let mut msg = new_message.reply_ping(&ctx.http, format!("Converting {} to MP4!", attachment.filename)).await.unwrap();
+                            let input_filename = format!("./tmp/input_{}.tmp", Uuid::new_v4());
+                            let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
+    
+                            // Download the file
+                            let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
+                            let bytes = response.bytes().await.unwrap();
+                            let mut file = std::fs::File::create(&input_filename).expect("Failed to create input file");
+                            file.write_all(&bytes).expect("Failed to write input file");
+    
+                            // Convert the video using FFmpeg
+                            let output = Command::new("ffmpeg")
+                                .args(&[
+                                    "-i", &input_filename,
+                                    "-c:v", "libx264",
+                                    "-preset", "medium",
+                                    "-crf", "23",
+                                    "-c:a", "aac",
+                                    "-b:a", "128k",
+                                    &output_filename
+                                ])
+                                .output()
+                                .expect("Failed to execute FFmpeg command.");
+    
+                            if output.status.success() {
+                                let file = serenity::all::CreateAttachment::path(&output_filename).await.unwrap();
+                                let build = EditMessage::new().new_attachment(file).content("Done!");
+                                msg.edit(&ctx.http, build).await.unwrap();
+                            } else {
+                                println!("FFmpeg conversion failed: {:?}", String::from_utf8_lossy(&output.stderr));
+                                let _ = new_message.channel_id.say(&ctx.http, "Failed to convert the video.").await;
+                            }
+    
+                            let _ = std::fs::remove_file(&input_filename);
+                            let _ = std::fs::remove_file(&output_filename);
+                        });
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[tokio::main]
 async fn main() {
-    let discord_api_key = CONFIG.main.discord_api_key;
-    // Set gateway intents, which decides what events the bot will be notified about
+    std::fs::create_dir_all("./tmp").unwrap();
+    let discord_api_key = &CONFIG.main.discord_api_key;
     let intents = GatewayIntents::GUILDS
         | GatewayIntents::GUILD_PRESENCES
         | GatewayIntents::GUILD_MEMBERS

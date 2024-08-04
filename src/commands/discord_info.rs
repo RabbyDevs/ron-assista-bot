@@ -64,15 +64,15 @@ pub async fn discordinfo(
 
         let footer = CreateEmbedFooter::new("Powered by RON Assista Bot").icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
         let color = Colour::from_rgb(117, 31, 10);
-        let mut embed = CreateEmbed::default()
+        let mut first_embed = CreateEmbed::default()
             .title("Extra User Information")
             .field("Username", format!("{}",user.name), true)
             .field("Global Name", format!("{}",global_name), true)
             .field("User Creation Date", format!("<t:{}:D>\n{}", created_at_timestamp, new_account_message), true)
             .field("Avatar URL", format!("{}",avatar_url), true)
             .field("Banner URL", format!("{}",banner_url), true)
-            .footer(footer)
-            .color(color);
+            .color(color.clone());
+        let mut embeds = vec![];
 
             if let Some(guild_id) = interaction.guild_id() {
                 if let Ok(member) = guild_id.member(&interaction.http(), userid).await {
@@ -120,17 +120,27 @@ pub async fn discordinfo(
                         .map(|roleid| format!("<@&{}>", roleid))
                         .collect::<Vec<String>>()
                         .join(" ");
-            
-                    embed = embed
-                        .field("Member Nickname", nickname, true)
+
+                    let role_embed = CreateEmbed::default()
+                        .title("Guild Member Information")
                         .field("User Roles", role_string, false)
-                        .field("User Permissions", perms_string, false);
+                        .field("Member Nickname", nickname, true)
+                        .color(color.clone());
+                    embeds.push(role_embed);
+            
+                    let permissions_embed = CreateEmbed::default()
+                        .title("Guild Member Information")
+                        .field("User Permissions", perms_string, false)
+                        .footer(footer.clone())
+                        .color(color.clone());
+                    embeds.push(permissions_embed);
                 }
             } else {
-                embed = embed.field("Note", "This command was used outside of a guild context. Role and permission information is not available.", false);
+                first_embed = first_embed.field("Note", "This command was used outside of a guild context. Role and permission information is not available.", false).footer(footer.clone());
             }
+        embeds.insert(0, first_embed);
 
-        interaction.channel_id().send_message(&interaction.http(), CreateMessage::default().embed(embed)).await?;
+        interaction.channel_id().send_message(&interaction.http(), CreateMessage::default().embeds(embeds)).await?;
     }
     Ok(())
 }
