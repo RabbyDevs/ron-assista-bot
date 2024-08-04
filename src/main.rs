@@ -26,6 +26,8 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 struct Handler;
 use uuid::Uuid;
 
+static DODGED_FILE_FORMATS: Lazy<Vec<String>> = Lazy::new(|| vec!["video/mp4".to_string(), "video/webm".to_string(), "video/quicktime".to_string()]);
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, _: serenity::prelude::Context, ready: Ready) {
@@ -36,7 +38,7 @@ impl EventHandler for Handler {
         if !new_message.attachments.is_empty() {
             for attachment in &new_message.attachments {
                 if let Some(content_type) = &attachment.content_type {
-                    if content_type == "video/x-ms-wmv" || content_type == "video/x-matroska" {
+                    if content_type.contains("video/") && (!DODGED_FILE_FORMATS.contains(content_type)) {
                         let new_message = new_message.clone();
                         let attachment = attachment.clone();
                         let ctx = ctx.clone();
