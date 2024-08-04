@@ -1,7 +1,6 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{DateTime, Local};
 use regex::Regex;
-use futures::future;
 use serenity::all::EditMessage;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter};
 use serenity::model::colour::Colour;
@@ -32,6 +31,9 @@ pub async fn getinfo(
     }
 
     for id in roblox_ids {
+        let friend_count_future = helper::roblox_friend_count(&id);
+        let group_count_future = helper::roblox_group_count(&id);
+        let badge_data_future = helper::badge_data(id.clone(), badge_iterations);
         if id.is_empty() { continue; }
 
         let user_details = RBX_CLIENT.user_details(id.parse::<u64>().expect("Invalid user ID")).await?;
@@ -67,26 +69,26 @@ pub async fn getinfo(
             .field("Account Creation", format!("<t:{}:D>{}", created_at_timestamp, new_account_message), false);
 
         let mut init_message = interaction.channel_id().send_message(&interaction.http(), CreateMessage::new().add_embed(embed.clone())).await?;
-
-        let (friend_count, group_count, badge_data) = future::join3(
-            helper::roblox_friend_count(&id),
-            helper::roblox_group_count(&id),
-            helper::badge_data(id.clone(), badge_iterations)
-        ).await;
-
-        if let (Ok(friend_count), Ok(group_count)) = (friend_count, group_count) {
-            embed = embed
-                .field("Friend Count", friend_count.to_string(), false)
-                .field("Group Count", group_count.to_string(), false);
+        
+        // Execute friend count first and update the embed
+        if let Ok(friend_count) = friend_count_future.await {
+            embed = embed.field("Friend Count", friend_count.to_string(), false);
+            init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
         }
-
-        init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
-
-        if let Ok((badge_count, win_rate, awarders_string)) = badge_data {
+        
+        // Execute group count next and update the embed
+        if let Ok(group_count) = group_count_future.await {
+            embed = embed.field("Group Count", group_count.to_string(), false);
+            init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
+        }
+        
+        // Execute badge data last
+        if let Ok((badge_count, win_rate, awarders_string)) = badge_data_future.await {
             embed = embed
                 .field("Badge Count", badge_count.to_string(), false)
                 .field("Average Win Rate", format!("{:.3}%", win_rate), false)
                 .field("Top Badge Givers", awarders_string, false);
+            init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
         }
 
         init_message.edit(&interaction.http(), EditMessage::new().add_embed(embed.clone())).await?;
