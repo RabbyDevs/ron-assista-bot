@@ -240,7 +240,7 @@ pub async fn timed_role(
             continue;
         }
 
-        ctx.say(format!("Probation set for user {} until {}", user_id.mention(), timestamp_string)).await?;
+        ctx.say(format!("Role {} set for user {} for {}", role.id, user_id.mention(), timestamp_string)).await?;
         }
     }
 

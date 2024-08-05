@@ -11,7 +11,7 @@ use reqwest::Client;
 
 mod helper;
 mod commands;
-use commands::{discord_info, discord_log, get_info, probation_log, roblox_log, role_log, timed_role::{self, TimerSystem}, update};
+use commands::{discord_info, discord_log, false_infraction, get_info, probation_log, roblox_log, role_log, timed_role::{self, TimerSystem}, update};
 
 static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
@@ -154,7 +154,17 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update(), discord_info::discordinfo(), timed_role::timed_role()],
+            commands: vec![
+                discord_log::discordlog(), 
+                roblox_log::robloxlog(), 
+                probation_log::probationlog(), 
+                role_log::rolelog(), 
+                get_info::getinfo(), 
+                update::update(), 
+                discord_info::discordinfo(), 
+                timed_role::timed_role(), 
+                false_infraction::false_infraction()
+            ],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

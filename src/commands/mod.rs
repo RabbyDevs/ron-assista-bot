@@ -9,3 +9,4 @@ pub mod discord_info;
 pub mod game_ban;
 pub mod game_warn;
 pub mod timed_role;
+pub mod false_infraction;
