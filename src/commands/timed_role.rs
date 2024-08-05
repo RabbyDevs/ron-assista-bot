@@ -195,7 +195,7 @@ impl TimerSystem {
 use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, NUMBER_REGEX, TIMER_SYSTEM};
 
 #[poise::command(slash_command, prefix_command)]
-/// Makes a probation log based on the Discord IDs inputted.
+/// Assigns a role, temporarily, based on the parameters inputted.
 pub async fn timed_role(
     ctx: Context<'_>,
     #[description = "Users for the command, only accepts Discord ids."] users: String,
