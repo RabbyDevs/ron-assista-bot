@@ -1,4 +1,4 @@
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX, TIMER_SYSTEM};
 pub mod roblox_log;
 pub mod discord_log;
 pub mod probation_log;
@@ -8,3 +8,4 @@ pub mod update;
 pub mod discord_info;
 pub mod game_ban;
 pub mod game_warn;
+pub mod timed_role;

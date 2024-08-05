@@ -18,7 +18,7 @@ pub async fn probationlog(
     #[description = "Users for the command, only accepts Discord ids."] users: String,
     #[description = "Type of infraction."] #[rename = "type"] infraction_type: ProbationTypes,
     #[description = "Reason for infraction."] reason: String,
-    #[description = "Multimessage mode allows creation of multiple logs from 1 command."] duration: String
+    #[description = "Duration in 6d, etc format."] duration: String
 ) -> Result<(), Error> {
     interaction.reply("Making logs, please standby!").await?;
     let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
