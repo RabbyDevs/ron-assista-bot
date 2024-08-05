@@ -75,7 +75,10 @@ impl EventHandler for Handler {
                 if output.status.success() {
                     let file = serenity::all::CreateAttachment::path(&output_filename).await.unwrap();
                     let build = EditMessage::new().new_attachment(file).content("Done!");
-                    msg.edit(&ctx.http, build).await.unwrap();
+                    match msg.edit(&ctx.http, build).await {
+                        Ok(()) => (),
+                        Err(_) => {msg.edit(&ctx.http, EditMessage::new().content("Message failed to edit, file may have been too large!")).await.unwrap(); ()} 
+                    };
                 } else {
                     println!("FFmpeg conversion failed: {:?}", String::from_utf8_lossy(&output.stderr));
                     let _ = new_message.channel_id.say(&ctx.http, "Failed to convert the video.").await;
