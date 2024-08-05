@@ -53,16 +53,16 @@ pub async fn false_infraction(
 
     for (index, mod_id) in mod_ids.iter().enumerate() {
         if index + 1 == mod_ids.len() {
-            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_string(), mod_id.to_user(&ctx.http()).await.unwrap().name);
+            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().name, mod_id.to_string());
             for affected_id in &affected_ids {
-                response.push_str(format!("\n[{}:{}]", affected_id.to_string(), affected_id.mention()).as_str())
+                response.push_str(format!("\n[{}:{}]", affected_id.mention(), affected_id.to_string()).as_str())
             }
             response.push_str(format!("\n[{}]", reason).as_str());
             ctx.say(response).await?;
         } else {
-            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_string(), mod_id.to_user(&ctx.http()).await.unwrap().name);
+            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().name, mod_id.to_string());
             let affected_id = affected_ids[affected_iter];
-            response.push_str(format!("\n[{}:{}]", affected_id.to_string(), affected_id.mention()).as_str());
+            response.push_str(format!("\n[{}:{}]", affected_id.mention(), affected_id.to_string()).as_str());
             response.push_str(format!("\n[{}]", reason).as_str());
             ctx.say(response).await?;
             if affected_ids.get(affected_iter + 1).is_some() {affected_ids.remove(affected_iter); affected_iter += 1};
