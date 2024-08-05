@@ -44,7 +44,7 @@ pub async fn getinfo(
         interaction.channel_id().say(&interaction.http(), format!("{}", user_details.id)).await?;
 
         // Prepare initial embed with basic info
-        let footer = CreateEmbedFooter::new("Made by RabbyDevs, made with ❤️ and 🦀.")
+        let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
         .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
         let mut embed = CreateEmbed::default()
             .title("Extra ROBLOX Information")
