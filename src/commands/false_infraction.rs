@@ -62,7 +62,7 @@ pub async fn false_infraction(
     #[description = "Affected users (space-separated IDs)"] affected_users: String,
     #[description = "Reason for invalidation."] reason: String,
 ) -> Result<(), Error> {
-    ctx.defer().await?;
+    ctx.reply("Making log(s), please standby!").await.unwrap();
 
     let mod_ids: Vec<UserId> = mod_users
         .split_whitespace()
