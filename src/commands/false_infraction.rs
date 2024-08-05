@@ -1,5 +1,8 @@
 use poise::ChoiceParameter;
-use super::{Context, Error, UserId, Mentionable, FromStr};
+use serenity::all::Mentionable;
+use crate::RBX_CLIENT;
+
+use super::{Context, Error, UserId, FromStr};
 
 #[derive(Debug, poise::ChoiceParameter)]
 pub enum FalseInfTypes {
@@ -23,6 +26,33 @@ pub enum FalseInfTypes {
     GameWarn
 }
 
+async fn do_affected_id(user: &str) -> (String, Vec<String>) {
+    let mut errors_vector = vec![];
+    let mut response_edit = String::new();
+    if user.len() >= 17 && user.chars().all(|c| c.is_digit(10)) {
+        let discord_id = match UserId::from_str(user) {Ok(id) => id, Err(err) => {
+            errors_vector.push(format!("Couldn't find turn discord id string into actual discord id for {}, details:\n{}", user, err));
+            return (response_edit, errors_vector)
+        }};
+        response_edit.push_str(format!("\n[{}:{}]", discord_id.mention(), discord_id.to_string()).as_str())
+    } else if user.len() < 17 && user.chars().all(|c| c.is_digit(10)) {
+        let details = match RBX_CLIENT.user_details(user.parse::<u64>().unwrap()).await {Ok(id) => id, Err(err) => {
+            errors_vector.push(format!("Couldn't find turn discord id into roblox id for {}, details:\n{}", user, err));
+            return (response_edit, errors_vector)
+        }};
+        response_edit.push_str(format!("\n[{}:{}]", details.username, details.id).as_str())
+    } else if !user.chars().all(|c| c.is_digit(10)) {
+        let user_search = match RBX_CLIENT.username_user_details(vec![user.to_string()], false).await {Ok(id) => id, Err(err) => {
+            errors_vector.push(format!("Couldn't find user details for {}, details:\n{}", user, err));
+            return (response_edit, errors_vector)
+        }};
+        for details in user_search {
+            response_edit.push_str(format!("\n[{}:{}]", details.username, details.id).as_str())
+        }
+    }
+    (response_edit, errors_vector)
+}
+
 #[poise::command(slash_command, prefix_command)]
 /// Makes a Discord infraction log based on the Discord IDs inputted.
 pub async fn false_infraction(
@@ -39,9 +69,9 @@ pub async fn false_infraction(
         .filter_map(|id| UserId::from_str(id).ok())
         .collect();
 
-    let mut affected_ids: Vec<UserId> = affected_users
+    let mut affected_ids: Vec<&str> = affected_users
         .split_whitespace()
-        .filter_map(|id| UserId::from_str(id).ok())
+        .map(|x| x)
         .collect();
 
     if mod_ids.is_empty() || affected_ids.is_empty() {
@@ -55,14 +85,22 @@ pub async fn false_infraction(
         if index + 1 == mod_ids.len() {
             let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().name, mod_id.to_string());
             for affected_id in &affected_ids {
-                response.push_str(format!("\n[{}:{}]", affected_id.mention(), affected_id.to_string()).as_str())
+                let result = do_affected_id(affected_id).await;
+                for err in result.1 {
+                    ctx.say(err).await.unwrap();
+                }
+                response.push_str(result.0.as_str());
             }
             response.push_str(format!("\n[{}]", reason).as_str());
             ctx.say(response).await?;
         } else {
             let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().name, mod_id.to_string());
             let affected_id = affected_ids[affected_iter];
-            response.push_str(format!("\n[{}:{}]", affected_id.mention(), affected_id.to_string()).as_str());
+            let result = do_affected_id(affected_id).await;
+            for err in result.1 {
+                ctx.say(err).await.unwrap();
+            }
+            response.push_str(result.0.as_str());
             response.push_str(format!("\n[{}]", reason).as_str());
             ctx.say(response).await?;
             if affected_ids.get(affected_iter + 1).is_some() {affected_ids.remove(affected_iter); affected_iter += 1};
