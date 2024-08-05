@@ -196,7 +196,7 @@ use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, NUMB
 
 #[poise::command(slash_command, prefix_command)]
 /// Makes a probation log based on the Discord IDs inputted.
-pub async fn timedrole(
+pub async fn timed_role(
     ctx: Context<'_>,
     #[description = "Users for the command, only accepts Discord ids."] users: String,
     #[description = "Type of infraction."] role: serenity::model::guild::Role,

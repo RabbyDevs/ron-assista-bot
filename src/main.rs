@@ -154,7 +154,7 @@ async fn main() {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update(), discord_info::discordinfo(), timed_role::timedrole()],
+            commands: vec![discord_log::discordlog(), roblox_log::robloxlog(), probation_log::probationlog(), role_log::rolelog(), get_info::getinfo(), update::update(), discord_info::discordinfo(), timed_role::timed_role()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
