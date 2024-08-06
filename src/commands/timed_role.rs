@@ -9,7 +9,7 @@ pub struct UserTimer {
     end_time: Instant,
     role_id: String,
     paused_at: Option<Instant>,
-    remaining_duration: Option<Duration>,
+    paused_duration: Duration,
 }
 
 pub struct TimerSystem {
@@ -35,11 +35,11 @@ impl TimerSystem {
         for result in db.iter() {
             let (key, value) = result?;
             let user_id = String::from_utf8(key.to_vec()).unwrap();
-            let (end_timestamp, role_id, is_paused, remaining_duration) = TimerSystem::deserialize_db_value(&value);
+            let (end_timestamp, role_id, is_paused, paused_duration) = TimerSystem::deserialize_db_value(&value);
             let end_time = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(end_timestamp);
             if end_time > std::time::SystemTime::now() {
                 let duration = end_time.duration_since(std::time::SystemTime::now()).unwrap();
-                system.add_timer(user_id, role_id, duration.as_secs(), is_paused, remaining_duration)?;
+                system.add_timer(user_id, role_id, duration.as_secs(), is_paused, paused_duration)?;
             } else {
                 db.remove(key)?;
             }
@@ -48,7 +48,7 @@ impl TimerSystem {
         Ok(system)
     }
 
-    pub fn add_timer(&self, user_id: String, role_id: String, duration_secs: u64, is_paused: bool, remaining_duration: Option<u64>) -> sled::Result<()> {
+    pub fn add_timer(&self, user_id: String, role_id: String, duration_secs: u64, is_paused: bool, paused_duration: Option<u64>) -> sled::Result<()> {
         let end_time = Instant::now() + Duration::from_secs(duration_secs);
         let end_timestamp = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs() + duration_secs;
 
@@ -60,10 +60,10 @@ impl TimerSystem {
                 end_time,
                 role_id: role_id.clone(),
                 paused_at: if is_paused { Some(Instant::now()) } else { None },
-                remaining_duration: remaining_duration.map(Duration::from_secs),
+                paused_duration: paused_duration.map(Duration::from_secs).unwrap_or(Duration::from_secs(0)),
             };
             timers.insert(user_id.clone(), timer);
-            let db_value = Self::serialize_db_value(end_timestamp, &role_id, is_paused, remaining_duration);
+            let db_value = Self::serialize_db_value(end_timestamp, &role_id, is_paused, paused_duration);
             db.insert(user_id, db_value).unwrap();
         });
 
@@ -75,11 +75,10 @@ impl TimerSystem {
         if let Some(timer) = timers.get_mut(user_id) {
             if timer.paused_at.is_none() {
                 let now = Instant::now();
-                timer.remaining_duration = Some(timer.end_time.duration_since(now));
                 timer.paused_at = Some(now);
                 
                 let (end_timestamp, role_id, _, _) = TimerSystem::deserialize_db_value(&self.db.get(user_id).unwrap().unwrap());
-                let db_value = Self::serialize_db_value(end_timestamp, &role_id, true, Some(timer.remaining_duration.unwrap().as_secs()));
+                let db_value = Self::serialize_db_value(end_timestamp, &role_id, true, Some(timer.paused_duration.as_secs()));
                 self.db.insert(user_id, db_value).unwrap();
                 
                 Ok(())
@@ -96,13 +95,13 @@ impl TimerSystem {
         if let Some(timer) = timers.get_mut(user_id) {
             if let Some(paused_at) = timer.paused_at {
                 let now = Instant::now();
-                let paused_duration = now.duration_since(paused_at);
-                timer.end_time += paused_duration;
+                let additional_pause = now.duration_since(paused_at);
+                timer.paused_duration += additional_pause;
+                timer.end_time += additional_pause;
                 timer.paused_at = None;
-                timer.remaining_duration = None;
                 
                 let new_end_timestamp = std::time::SystemTime::now().duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs() + timer.end_time.duration_since(now).as_secs();
-                let db_value = Self::serialize_db_value(new_end_timestamp, &timer.role_id, false, None);
+                let db_value = Self::serialize_db_value(new_end_timestamp, &timer.role_id, false, Some(timer.paused_duration.as_secs()));
                 self.db.insert(user_id, db_value).unwrap();
                 
                 Ok(timer.role_id.clone())
@@ -114,19 +113,11 @@ impl TimerSystem {
         }
     }
 
-    pub async fn set_event_handler<F, Fut>(&mut self, handler: F)
-    where
-        F: Fn(String, String) -> Fut + Send + Sync + 'static,
-        Fut: futures::Future<Output = ()> + Send + 'static,
-    {
-        *self.event_handler.lock().await = Box::new(move |user_id, role_id| Box::pin(handler(user_id, role_id)));
-    }
-
-    fn serialize_db_value(timestamp: u64, role_id: &str, is_paused: bool, remaining_duration: Option<u64>) -> Vec<u8> {
+    fn serialize_db_value(timestamp: u64, role_id: &str, is_paused: bool, paused_duration: Option<u64>) -> Vec<u8> {
         let mut value = timestamp.to_be_bytes().to_vec();
         value.extend_from_slice(role_id.as_bytes());
         value.push(if is_paused { 1 } else { 0 });
-        if let Some(duration) = remaining_duration {
+        if let Some(duration) = paused_duration {
             value.extend_from_slice(&duration.to_be_bytes());
         }
         value
@@ -137,12 +128,12 @@ impl TimerSystem {
         let role_id_end = value.iter().skip(8).position(|&x| x == 0 || x == 1).unwrap() + 8;
         let role_id = String::from_utf8(value[8..role_id_end].to_vec()).unwrap();
         let is_paused = value[role_id_end] == 1;
-        let remaining_duration = if value.len() > role_id_end + 1 {
+        let paused_duration = if value.len() > role_id_end + 1 {
             Some(u64::from_be_bytes(value[role_id_end+1..].try_into().unwrap()))
         } else {
             None
         };
-        (timestamp, role_id, is_paused, remaining_duration)
+        (timestamp, role_id, is_paused, paused_duration)
     }
 
     pub fn start_timer_thread(&self) {
@@ -180,15 +171,20 @@ impl TimerSystem {
                         let remaining = timer.end_time - now;
                         let end_time = system_now + std::time::Duration::from_secs(remaining.as_secs());
                         let end_timestamp = end_time.duration_since(std::time::SystemTime::UNIX_EPOCH).unwrap().as_secs();
-                        let db_value = Self::serialize_db_value(end_timestamp, &timer.role_id, false, None);
-                        // println!("timer ticked {:#?}", user_id);
+                        let db_value = Self::serialize_db_value(end_timestamp, &timer.role_id, false, Some(timer.paused_duration.as_secs()));
                         db.insert(user_id, db_value).unwrap();
-                    } else {
-                        // println!("timer paused {:#?}", user_id)
                     }
                 }
             }
         });
+    }
+    
+    pub async fn set_event_handler<F, Fut>(&mut self, handler: F)
+    where
+        F: Fn(String, String) -> Fut + Send + Sync + 'static,
+        Fut: futures::Future<Output = ()> + Send + 'static,
+    {
+        *self.event_handler.lock().await = Box::new(move |user_id, role_id| Box::pin(handler(user_id, role_id)));
     }
 }
 
@@ -227,20 +223,21 @@ pub async fn timed_role(
     let duration_secs = unix_timestamp - current_time;
 
     for user_id in users {
-        // Add role to user
-        if let Err(e) = ctx.http().add_member_role(guild_id, user_id, role.id, None).await {
-            ctx.say(format!("Failed to add role to user {}: {}", user_id, e)).await?;
-            continue;
-        }
-
         // Add timer to TimerSystem
         unsafe {
-        if let Err(e) = TIMER_SYSTEM.add_timer(user_id.to_string(), role.id.to_string(), duration_secs, false, None) {
-            ctx.say(format!("Failed to add timer for user {}: {}", user_id, e)).await?;
-            continue;
-        }
+            if let Err(e) = TIMER_SYSTEM.add_timer(user_id.to_string(), role.id.to_string(), duration_secs, false, None) {
+                ctx.say(format!("Failed to add timer for user {}: {}", user_id, e)).await?;
+                continue;
+            }
 
-        ctx.say(format!("Role {} set for user {} for {}", role.id, user_id.mention(), timestamp_string)).await?;
+            if let Err(e) = ctx.http().add_member_role(guild_id, user_id, role.id, None).await {
+                ctx.say(format!("Failed to add role to user {}, Timer added but paused: {}", user_id, e)).await?;
+                TIMER_SYSTEM.pause_timer(&user_id.to_string()).await.unwrap_or_else(|e| {
+                    println!("Failed to pause timer for user {}: {}", user_id, e);
+                });
+                continue;
+            }
+            ctx.say(format!("Role timer {} added for user {} for {}", role.id, user_id.mention(), timestamp_string)).await?;
         }
     }
 

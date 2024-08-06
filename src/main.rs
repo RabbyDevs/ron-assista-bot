@@ -134,7 +134,10 @@ impl EventHandler for Handler {
         ()
     }
     async fn guild_member_removal(&self, _ctx: serenity::prelude::Context, _guild_id: GuildId, user: User, _: Option<Member>) {
-        unsafe {TIMER_SYSTEM.pause_timer(user.id.to_string().as_str()).await.unwrap();}
+        unsafe {match TIMER_SYSTEM.pause_timer(user.id.to_string().as_str()).await {
+            Ok(()) => {()},
+            Err(_) => {()}
+        };}
         ()
     }
 }

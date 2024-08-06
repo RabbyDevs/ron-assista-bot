@@ -26,7 +26,7 @@ pub async fn discord_id_to_roblox_id(discord_id: UserId) -> Result<String, Strin
 
 pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, String), String> {
     let mut date_map = HashMap::new();
-    date_map.insert("h", (3600, "Hour"));
+    date_map.insert("h", (10, "Hour"));
     date_map.insert("d", (86400, "Day"));
     date_map.insert("w", (604800, "Week"));
     date_map.insert("m", (2629743, "Month"));
