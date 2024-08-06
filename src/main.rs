@@ -3,7 +3,7 @@ use std::{env, io::Write, process::Command, str::FromStr, vec};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::all::{EditMessage, GuildId, Member, RoleId, User};
+use ::serenity::all::{Attachment, EditMessage, GuildId, Member, Message, RoleId, User};
 use serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
@@ -11,7 +11,7 @@ use reqwest::Client;
 
 mod helper;
 mod commands;
-use commands::{discord_info, discord_log, false_infraction, get_info, probation_log, roblox_log, role_log, timed_role::{self, TimerSystem}, update};
+use commands::{discord_info, discord_log, false_infraction, get_info, probation_log, roblox_log, role_log, timed_role::{self, TimerSystem}, update, convert_video};
 
 static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
@@ -28,6 +28,47 @@ static mut TIMER_SYSTEM: Lazy<TimerSystem> = Lazy::new(|| timed_role::TimerSyste
 
 struct Handler;
 use uuid::Uuid;
+
+async fn video_convert(new_message: Message, ctx: serenity::prelude::Context, attachment: Attachment) {
+    let mut msg = new_message.reply_ping(&ctx.http, format!("Converting {} to MP4!", attachment.filename)).await.unwrap();
+    let input_filename = format!("./tmp/input_{}.tmp", Uuid::new_v4());
+    let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
+
+    // Download the file
+    let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
+    let bytes = response.bytes().await.unwrap();
+    let mut file = std::fs::File::create(&input_filename).expect("Failed to create input file");
+    file.write_all(&bytes).expect("Failed to write input file");
+
+    // Convert the video using FFmpeg
+    let output = Command::new("ffmpeg")
+        .args(&[
+            "-i", &input_filename,
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            &output_filename
+        ])
+        .output()
+        .expect("Failed to execute FFmpeg command.");
+
+    if output.status.success() {
+        let file = serenity::all::CreateAttachment::path(&output_filename).await.unwrap();
+        let build = EditMessage::new().new_attachment(file).content("Done!");
+        match msg.edit(&ctx.http, build).await {
+            Ok(()) => (),
+            Err(_) => {msg.edit(&ctx.http, EditMessage::new().content("Message failed to edit, file may have been too large!")).await.unwrap(); ()} 
+        };
+    } else {
+        println!("FFmpeg conversion failed: {:?}", String::from_utf8_lossy(&output.stderr));
+        let _ = new_message.channel_id.say(&ctx.http, "Failed to convert the video.").await;
+    }
+
+    let _ = std::fs::remove_file(&input_filename);
+    let _ = std::fs::remove_file(&output_filename);
+}
 
 static DODGED_FILE_FORMATS: Lazy<Vec<String>> = Lazy::new(|| vec!["video/mp4".to_string(), "video/webm".to_string(), "video/quicktime".to_string()]);
 #[async_trait]
@@ -78,44 +119,7 @@ impl EventHandler for Handler {
             let attachment = attachment.clone();
             let ctx = ctx.clone();
             tokio::spawn(async move {
-                let mut msg = new_message.reply_ping(&ctx.http, format!("Converting {} to MP4!", attachment.filename)).await.unwrap();
-                let input_filename = format!("./tmp/input_{}.tmp", Uuid::new_v4());
-                let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
-
-                // Download the file
-                let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
-                let bytes = response.bytes().await.unwrap();
-                let mut file = std::fs::File::create(&input_filename).expect("Failed to create input file");
-                file.write_all(&bytes).expect("Failed to write input file");
-
-                // Convert the video using FFmpeg
-                let output = Command::new("ffmpeg")
-                    .args(&[
-                        "-i", &input_filename,
-                        "-c:v", "libx264",
-                        "-preset", "medium",
-                        "-crf", "23",
-                        "-c:a", "aac",
-                        "-b:a", "128k",
-                        &output_filename
-                    ])
-                    .output()
-                    .expect("Failed to execute FFmpeg command.");
-
-                if output.status.success() {
-                    let file = serenity::all::CreateAttachment::path(&output_filename).await.unwrap();
-                    let build = EditMessage::new().new_attachment(file).content("Done!");
-                    match msg.edit(&ctx.http, build).await {
-                        Ok(()) => (),
-                        Err(_) => {msg.edit(&ctx.http, EditMessage::new().content("Message failed to edit, file may have been too large!")).await.unwrap(); ()} 
-                    };
-                } else {
-                    println!("FFmpeg conversion failed: {:?}", String::from_utf8_lossy(&output.stderr));
-                    let _ = new_message.channel_id.say(&ctx.http, "Failed to convert the video.").await;
-                }
-
-                let _ = std::fs::remove_file(&input_filename);
-                let _ = std::fs::remove_file(&output_filename);
+                video_convert(new_message, ctx, attachment).await;
             });
         }
     }
@@ -166,7 +170,8 @@ async fn main() {
                 update::update(), 
                 discord_info::discordinfo(), 
                 timed_role::timed_role(), 
-                false_infraction::false_infraction()
+                false_infraction::false_infraction(),
+                convert_video::convert_video()
             ],
             ..Default::default()
         })
