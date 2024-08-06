@@ -31,6 +31,7 @@ pub async fn duration_conversion(duration_string: String) -> Result<(u64, u64, S
     date_map.insert("d", (86400, "Day"));
     date_map.insert("w", (604800, "Week"));
     date_map.insert("m", (2629743, "Month"));
+    date_map.insert("y", (31556952, "Year"));
     let duration_list = duration_string.split(' ').map(str::to_string).collect::<Vec<String>>();
     let mut unix_total = 0;
     let mut final_string = String::new();
