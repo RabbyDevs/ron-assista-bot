@@ -10,7 +10,7 @@ pub async fn convert_video(
     ctx: Context<'_>,
     #[description = "Message ids for command."] message_ids: String,
 ) -> Result<(), Error> {
-    ctx.defer().await?;
+    ctx.reply("Converting message videos, searching thru each channel, this may take a while!").await?;
 
     let message_ids: Vec<u64> = message_ids
         .split_whitespace()
