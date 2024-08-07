@@ -5,7 +5,7 @@ use poise::serenity_prelude as serenity;
 use std::sync::Arc;
 
 #[poise::command(slash_command, prefix_command)]
-/// Command for updating the bot.
+/// Command for activating the video convertor on specific messages.
 pub async fn convert_video(
     ctx: Context<'_>,
     #[description = "Message ids for command."] message_ids: String,

@@ -1,13 +1,8 @@
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX, TIMER_SYSTEM, video_convert};
-pub mod roblox_log;
-pub mod discord_log;
-pub mod probation_log;
-pub mod role_log;
-pub mod get_info;
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, RBX_CLIENT, CONFIG, NUMBER_REGEX, TIMER_SYSTEM, video_format_changer, video_convert, image_to_png_converter, png_to_gif_converter, video_to_gif_converter};
+
 pub mod update;
-pub mod discord_info;
-pub mod game_ban;
-pub mod game_warn;
-pub mod timed_role;
-pub mod false_infraction;
-pub mod convert_video;
+pub mod log_module;
+pub mod video_module;
+pub mod time_module;
+pub mod info_module;
+pub mod game_module;
