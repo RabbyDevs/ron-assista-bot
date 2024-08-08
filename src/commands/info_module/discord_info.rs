@@ -63,7 +63,7 @@ pub async fn discordinfo(
         };
 
         let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.").icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
-        let color = Colour::from_rgb(117, 31, 10);
+        let color = Colour::from_rgb(98,32,7);
         let mut first_embed = CreateEmbed::default()
             .title("Extra User Information")
             .field("Username", format!("{}",user.name), true)

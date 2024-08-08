@@ -48,7 +48,7 @@ pub async fn getinfo(
         .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
         let mut embed = CreateEmbed::default()
             .title("Extra ROBLOX Information")
-            .color(Colour::from_rgb(117, 31, 10))
+            .color(Colour::from_rgb(98,32,7))
             .footer(footer)
             .field("User Link", format!("https://roblox.com/users/{}", user_details.id), false);
 

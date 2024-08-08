@@ -1,16 +1,16 @@
 #![feature(async_closure)]
-use std::{env, str::FromStr, vec};
+use std::{env, io::Write, str::FromStr, sync::{Arc, Mutex}, vec};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::all::{GuildId, Member, RoleId, User};
+use ::serenity::all::{ChannelId, Color, CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage, GuildId, Member, RoleId, User};
 use serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
 use reqwest::Client;
 
 mod main_modules;
-use main_modules::{helper::{self, video_convert, video_format_changer, image_to_png_converter, video_to_gif_converter, png_to_gif_converter}, timer::TimerSystem};
+use main_modules::{helper::{self, video_convert, video_format_changer, image_to_png_converter, video_to_gif_converter, png_to_gif_converter}, timer::TimerSystem, deleted_attachments::{self, AttachmentStoreDB, AttachmentStore}};
 mod commands;
 use commands::{
     video_module::{
@@ -31,6 +31,7 @@ use commands::{
     time_module::timed_role, 
     update
 };
+use uuid::Uuid;
 
 static_toml::static_toml! {
     static CONFIG = include_toml!("config.toml");
@@ -44,6 +45,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
 static mut TIMER_SYSTEM: Lazy<TimerSystem> = Lazy::new(|| TimerSystem::new("probation_role").unwrap());
+static mut ATTACHMENT_DB: Lazy<Arc<Mutex<AttachmentStoreDB>>> = Lazy::new(|| AttachmentStoreDB::get_instance());
 
 struct Handler;
 
@@ -86,6 +88,17 @@ impl EventHandler for Handler {
             return;
         }
 
+        let message_id = new_message.id;
+        let user_id = new_message.author.id;
+        let attachments = new_message.attachments.clone();
+        let created_at = new_message.id.created_at();
+        let store = AttachmentStore {
+            message_id,
+            attachments,
+            created_at,
+            user_id
+        };
+
         for attachment in &new_message.attachments {
             let Some(content_type) = &attachment.content_type else { continue };
             if !content_type.contains("video/") || DODGED_FILE_FORMATS.contains(content_type) {
@@ -98,6 +111,46 @@ impl EventHandler for Handler {
             tokio::spawn(async move {
                 video_convert(new_message, ctx, attachment).await;
             });
+        }
+
+        unsafe { ATTACHMENT_DB.lock().unwrap().save(&store).unwrap(); }
+    }
+
+    async fn message_delete(&self, ctx: serenity::prelude::Context, _: ChannelId, deleting_message: serenity::all::MessageId, guild_id: Option<GuildId>) {
+        unsafe {
+            let db_entry = match ATTACHMENT_DB.lock().unwrap().get(deleting_message.to_string().as_str()) {
+                Some(entry) => entry,
+                None => {
+                    return;
+                }
+            };
+
+            for attachment in db_entry.attachments {
+                let ctx = ctx.clone();
+                let guild_id = guild_id.clone();
+                tokio::spawn(async move {
+                    if guild_id.is_some() && guild_id.unwrap().to_string() == "570684122519830540".to_string() {
+                        let log_channel_id = ChannelId::new(786262238721474621 as u64);
+                        let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
+                        let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
+                        let bytes = response.bytes().await.unwrap();
+                        let mut file = std::fs::File::create(&output_filename).expect("Failed to create input file");
+                        file.write_all(&bytes).expect("Failed to write input file");
+                        let attachment = CreateAttachment::file(&tokio::fs::File::from_std(file), Uuid::new_v4()).await.unwrap();
+                        let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
+                            .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+                        let embed = CreateEmbed::new().title("Image Log")
+                            .field("User", format!("<@{}> - {}", db_entry.user_id, db_entry.user_id), false)
+                            .field("Sent on", format!("<t:{}:D>", db_entry.created_at.unix_timestamp()), false)
+                            .color(Color::from_rgb(98,32,7))
+                            .footer(footer);
+                        log_channel_id.send_message(&ctx.http, CreateMessage::new().add_file(attachment).add_embed(embed)).await.unwrap();
+                        std::fs::remove_file(output_filename).unwrap();
+                    };
+                });
+            }
+
+            ATTACHMENT_DB.lock().unwrap().delete(deleting_message.to_string().as_str()).unwrap();
         }
     }
 
@@ -125,6 +178,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
+    deleted_attachments::start_attachment_db();
     std::fs::create_dir_all("./tmp").unwrap();
     let discord_api_key = &CONFIG.main.discord_api_key;
     let intents = GatewayIntents::GUILDS
