@@ -10,7 +10,7 @@ pub struct AttachmentStore {
     pub message_id: MessageId,
     pub user_id: UserId,
     pub attachments: Vec<Attachment>,
-    pub created_at: Timestamp,
+    pub created_at: Timestamp
 }
 
 pub struct AttachmentStoreDB {
