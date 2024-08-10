@@ -8,7 +8,7 @@ use super::{Context, Error, UserId, FromStr};
 pub enum FalseInfTypes {
     #[name = "Discord, Temporary Ban"]
     Ban,
-    #[name = "Discord, Temporary Ban"]
+    #[name = "Discord, Ban"]
     TempBan,
     #[name = "Discord, Kick"]
     Kick,
@@ -18,6 +18,8 @@ pub enum FalseInfTypes {
     Warn,
     #[name = "Game, Ban"]
     GameBan,
+    #[name = "Game, Temporary Ban"]
+    GameTempBan,
     #[name = "Game, Serverban"]
     GameServerBan,
     #[name = "Game, Kick"]
