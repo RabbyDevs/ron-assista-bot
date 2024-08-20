@@ -3,17 +3,17 @@ use std::{env, io::Write, str::FromStr, sync::{Arc, Mutex}, vec};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use roboat::ClientBuilder;
-use ::serenity::all::{ChannelId, Color, CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage, GuildId, Member, MessageId, RoleId, User};
+use ::serenity::all::{ChannelId, Color, CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage, GuildId, Member, MessageId, Reaction, ReactionType, RoleId, User};
 use serenity::{all::{ActivityData, OnlineStatus, Ready}, async_trait};
 use serenity::{prelude::*, UserId};
 use poise::serenity_prelude as serenity;
 use reqwest::Client;
 
 mod main_modules;
-use main_modules::{helper::{self, video_convert, video_format_changer, image_to_png_converter, video_to_gif_converter, png_to_gif_converter}, timer::TimerSystem, deleted_attachments::{self, AttachmentStoreDB, AttachmentStore}};
+use main_modules::{helper, media::{video_convert, video_format_changer, video_to_gif_converter, image_to_png_converter, png_to_gif_converter, QualityPreset, apply_mask}, timer::TimerSystem, deleted_attachments::{self, AttachmentStoreDB, AttachmentStore}};
 mod commands;
 use commands::{
-    video_module::{
+    media_module::{
         convert_video,
         convert_gif
     },
@@ -105,6 +105,60 @@ static mut QUEUED_LOGGING: Lazy<Vec<LoggingQueue>> = Lazy::new(||vec![]);
 struct Handler;
 
 static DODGED_FILE_FORMATS: Lazy<Vec<String>> = Lazy::new(|| vec!["video/mp4".to_string(), "video/webm".to_string(), "video/quicktime".to_string()]);
+
+async fn reaction_logging(
+    ctx: serenity::prelude::Context, 
+    event_type: &str, 
+    user_id: Option<UserId>, 
+    channel_id: ChannelId, 
+    message_id: MessageId, 
+    guild_id: Option<GuildId>, 
+    emoji: Option<&ReactionType>
+) {
+    let log_channel_id = ChannelId::new(CONFIG.modules.logging.logging_channel_id.parse().unwrap());
+    let mut embed_builder = CreateEmbed::new();
+    
+    let emoji_url = match emoji {
+        Some(ReactionType::Custom { animated, id, .. }) => {
+            let extension = if *animated { "gif" } else { "png" };
+            format!("https://cdn.discordapp.com/emojis/{}.{}", id, extension)
+        },
+        Some(ReactionType::Unicode(_)) => String::new(),
+        _ => String::new(),
+    };
+
+    let title = match event_type {
+        "add" => "Reaction Added",
+        "remove" => "Reaction Removed",
+        "remove_all" => "All Reactions Removed",
+        "remove_emoji" => "Emoji Removed",
+        _ => "Reaction Event",
+    };
+
+    embed_builder = embed_builder
+        .color(Color::from_rgb(98,32,7))
+        .title(title)
+        .field("Channel", channel_id.mention().to_string(), true)
+        .field("Message", format!("[Jump to Message]({})", message_id.link(channel_id, guild_id)), false);
+
+    if let Some(emoji) = emoji {
+        embed_builder = embed_builder.field("Emoji", emoji.to_string(), false);
+    }
+
+    if let Some(user_id) = user_id {
+        embed_builder = embed_builder.field("Original User", user_id.mention().to_string(), true);
+    }
+
+    if !emoji_url.is_empty() {
+        embed_builder = embed_builder.thumbnail(emoji_url);
+    }
+
+    if let Err(why) = log_channel_id.send_message(&ctx.http, CreateMessage::new().add_embed(embed_builder)).await {
+        eprintln!("Error sending log message: {:?}", why);
+    }
+}
+
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: serenity::prelude::Context, ready: Ready) {
@@ -133,9 +187,8 @@ impl EventHandler for Handler {
                 }
             })
         }).await;
-    
-        TIMER_SYSTEM.start_timer_thread();
-    }
+            TIMER_SYSTEM.start_timer_thread();
+        }
     }
 
     async fn message(&self, ctx: serenity::prelude::Context, new_message: serenity::all::Message) {
@@ -230,12 +283,61 @@ impl EventHandler for Handler {
             };}
         ()
     }
+    
     async fn guild_member_removal(&self, _ctx: serenity::prelude::Context, _guild_id: GuildId, user: User, _: Option<Member>) {
         unsafe {match TIMER_SYSTEM.pause_timer(user.id.to_string().as_str()).await {
             Ok(()) => {()},
             Err(_) => {()}
         };}
         ()
+    }
+
+    async fn reaction_add(&self, ctx: serenity::prelude::Context, add_reaction: Reaction) {
+        reaction_logging(
+            ctx, 
+            "add", 
+            Some(add_reaction.user_id.unwrap()), 
+            add_reaction.channel_id, 
+            add_reaction.message_id, 
+            add_reaction.guild_id, 
+            Some(&add_reaction.emoji)
+        ).await;
+    }
+
+    async fn reaction_remove(&self, ctx: serenity::prelude::Context, remove_reaction: Reaction) {
+        reaction_logging(
+            ctx, 
+            "remove", 
+            Some(remove_reaction.user_id.unwrap()), 
+            remove_reaction.channel_id, 
+            remove_reaction.message_id, 
+            remove_reaction.guild_id, 
+            Some(&remove_reaction.emoji)
+        ).await;
+    }
+
+    async fn reaction_remove_all(&self, ctx: serenity::prelude::Context, channel_id: ChannelId, removed_from_message_id: MessageId) {
+        reaction_logging(
+            ctx, 
+            "remove_all", 
+            None, 
+            channel_id, 
+            removed_from_message_id, 
+            None, 
+            None
+        ).await;
+    }
+
+    async fn reaction_remove_emoji(&self, ctx: serenity::prelude::Context, removed_reaction: Reaction) {
+        reaction_logging(
+            ctx, 
+            "remove_emoji", 
+            None, 
+            removed_reaction.channel_id, 
+            removed_reaction.message_id, 
+            removed_reaction.guild_id, 
+            Some(&removed_reaction.emoji)
+        ).await;
     }
 }
 
@@ -251,7 +353,8 @@ async fn main() {
         | GatewayIntents::MESSAGE_CONTENT
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::DIRECT_MESSAGE_TYPING
-        | GatewayIntents::DIRECT_MESSAGE_REACTIONS;
+        | GatewayIntents::DIRECT_MESSAGE_REACTIONS
+        | GatewayIntents::GUILD_MESSAGE_REACTIONS;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -266,7 +369,7 @@ async fn main() {
                 timed_role::timed_role(), 
                 false_infraction::false_infraction(),
                 convert_video::convert_video(),
-                convert_gif::convert_gif()
+                convert_gif::gif()
             ],
             ..Default::default()
         })

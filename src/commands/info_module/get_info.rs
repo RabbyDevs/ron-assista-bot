@@ -43,6 +43,7 @@ pub async fn getinfo(
         interaction.channel_id().say(&interaction.http(), "### User ID").await?;
         interaction.channel_id().say(&interaction.http(), format!("{}", user_details.id)).await?;
 
+        let avatar_image = helper::get_roblox_avatar_bust(user_details.id.to_string()).await;
         // Prepare initial embed with basic info
         let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
         .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
@@ -50,6 +51,7 @@ pub async fn getinfo(
             .title("Extra ROBLOX Information")
             .color(Colour::from_rgb(98,32,7))
             .footer(footer)
+            .thumbnail(format!("{}", avatar_image.as_str()))
             .field("User Link", format!("https://roblox.com/users/{}", user_details.id), false);
 
         let sanitized_description = new_line_regex.replace(&user_details.description, "").into_owned();

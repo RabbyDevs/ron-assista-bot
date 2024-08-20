@@ -2,11 +2,7 @@
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serde_json::Value;
-use serenity::all::{Attachment, EditMessage, Message};
-use uuid::Uuid;
 use std::collections::HashMap;
-use std::io::Write;
-use std::process::{Command, Output};
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use super::{UserId, CONFIG, REQWEST_CLIENT, RBX_CLIENT};
@@ -249,95 +245,18 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
     (roblox_ids, errors_vector)
 }
 
-pub fn video_format_changer(input_filename: &String, output_filename: &String) -> Output {
-    let output = Command::new("ffmpeg")
-        .args(&[
-            "-i", input_filename,
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-crf", "23",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-fs", "100M",
-            output_filename
-        ])
-        .output()
-        .expect("Failed to execute FFmpeg command.");
-    output
-}
+pub async fn get_roblox_avatar_bust(user_id: String) -> String {
+    let response = REQWEST_CLIENT.get(format!("https://thumbnails.roblox.com/v1/users/avatar-bust?userIds={}&size=420x420&format=Png&isCircular=false", user_id))
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
 
-pub async fn video_convert(new_message: Message, ctx: serenity::prelude::Context, attachment: Attachment) {
-    let mut msg = new_message.reply_ping(&ctx.http, format!("Converting {} to MP4!", attachment.filename)).await.unwrap();
-    let input_filename = format!("./tmp/input_{}.tmp", Uuid::new_v4());
-    let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
-
-    // Download the file
-    let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
-    let bytes = response.bytes().await.unwrap();
-    let mut file = std::fs::File::create(&input_filename).expect("Failed to create input file");
-    file.write_all(&bytes).expect("Failed to write input file");
-
-    // Convert the video using FFmpeg
-    let output = video_format_changer(&input_filename, &output_filename);
-
-    if output.status.success() {
-        let file = serenity::all::CreateAttachment::path(&output_filename).await.unwrap();
-        let build = EditMessage::new().new_attachment(file).content("Done!");
-        match msg.edit(&ctx.http, build).await {
-            Ok(()) => (),
-            Err(_) => {msg.edit(&ctx.http, EditMessage::new().content("Message failed to edit, file may have been too large!")).await.unwrap(); ()} 
-        };
-    } else {
-        println!("FFmpeg conversion failed: {:?}", String::from_utf8_lossy(&output.stderr));
-        let _ = new_message.channel_id.say(&ctx.http, "Failed to convert the video.").await;
-        let _ = std::fs::remove_file(&input_filename);
-    }
-
-    let _ = std::fs::remove_file(&input_filename);
-    let _ = std::fs::remove_file(&output_filename);
-}
-
-pub fn image_to_png_converter(input_filename: &str, output_filename: &str) -> Output {
-    let output = Command::new("ffmpeg")
-        .args(&[
-            "-i", input_filename,
-            "-format", "png",
-            "-lossless", "1",
-            "-fs", "100M",
-            output_filename
-        ])
-        .output()
-        .expect("Failed to execute FFmpeg command.");
-    
-    output
-}
-
-pub fn video_to_gif_converter(input_filename: &str, output_filename: &str) -> Output {
-    let output = Command::new("ffmpeg")
-        .args(&[
-            "-i", input_filename,
-            "-vf", "fps=10,scale='min(1920,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256:reserve_transparent=0:stats_mode=diff[p];[s1][p]paletteuse=new=1:dither=sierra2_4a:diff_mode=rectangle",
-            "-loop", "0",
-            "-fs", "100M",
-            output_filename
-        ])
-        .output()
-        .expect("Failed to execute FFmpeg command.");
-   
-    output
-}
-
-pub fn png_to_gif_converter(input_filename: &str, output_filename: &str) -> Output {
-    let output = Command::new("ffmpeg")
-        .args(&[
-            "-i", input_filename,
-            "-vf", "scale='min(1920,iw)':-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256:reserve_transparent=0:stats_mode=single[p];[s1][p]paletteuse=new=1:dither=sierra2_4a:diff_mode=rectangle",
-            "-loop", "0",
-            "-fs", "100M",
-            output_filename
-        ])
-        .output()
-        .expect("Failed to execute FFmpeg command.");
-   
-    output
+    let parsed_json: Value = serde_json::from_str(&response.as_str()).unwrap();
+    parsed_json["data"].as_array().unwrap().get(0).unwrap()["imageUrl"]
+        .as_str()
+        .unwrap_or("")
+        .to_string()
 }
