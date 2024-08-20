@@ -8,19 +8,19 @@ edition = "2021"
 chrono = "0.4.38"
 futures = "0.3.30"
 image = "0.25.2"
-indexmap = "2.2.6"
+indexmap = "2.4.0"
 once_cell = "1.19.0"
 poise = { version = "0.6.1" }
 rayon = "1.10.0"
-regex = "1.10.4"
-reqwest = { version = "0.12.4" }
+regex = "1.10.6"
+reqwest = { version = "0.12.7" }
 roboat = "0.35.0"
-serde = "1.0.204"
-serde_json = "1.0.120"
+serde = "1.0.208"
+serde_json = "1.0.125"
 serenity = { version = "0.12.1", features = ["rustls_backend"], default-features = false }
 sled = "0.34.7"
 static-toml = "1.2.0"
-tokio = "1.37.0"
+tokio = "1.39.3"
 uuid = "1.10.0"
 
 [profile.release]
