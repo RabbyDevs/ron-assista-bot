@@ -1,27 +1,26 @@
 [package]
 name = "ron-assista-bot"
-version = "2.7.0-beta-2"
+version = "2.7.0-beta3"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.38"
 futures = "0.3.30"
 image = "0.25.2"
-indexmap = "2.4.0"
+indexmap = "2.5.0"
 once_cell = "1.19.0"
 poise = { version = "0.6.1" }
 rayon = "1.10.0"
 regex = "1.10.6"
 reqwest = { version = "0.12.7" }
 roboat = "0.35.0"
-serde = "1.0.208"
-serde_json = "1.0.125"
-serenity = { version = "0.12.1", features = ["rustls_backend"], default-features = false }
+serde = "1.0.209"
+serde_json = "1.0.127"
+serenity = { version = "0.12.2", features = ["rustls_backend"], default-features = false }
 sled = "0.34.7"
 static-toml = "1.2.0"
-tempdir = "0.3.7"
 tempfile = "3.12.0"
-tokio = "1.39.3"
+tokio = "1.40.0"
 uuid = "1.10.0"
 
 [profile.release]

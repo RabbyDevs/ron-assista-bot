@@ -43,7 +43,7 @@ struct Data {} // User data, which is stored and accessible in all command invoc
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-async fn do_image_logging(ctx: serenity::prelude::Context, deleting_message: serenity::all::MessageId, guild_id: Option<GuildId>) {
+async fn do_image_logging(ctx: serenity::prelude::Context, deleting_message: serenity::all::MessageId, guild_id: Option<GuildId>, channel_id: ChannelId) {
     unsafe {
         let db_entry = match ATTACHMENT_DB.lock().unwrap().get(deleting_message.to_string().as_str()) {
             Some(entry) => entry,
@@ -70,6 +70,7 @@ async fn do_image_logging(ctx: serenity::prelude::Context, deleting_message: ser
                     let embed = CreateEmbed::new().title("Attachment Log")
                         .field("User", format!("<@{}> - {}", db_entry.user_id, db_entry.user_id), false)
                         .field("Sent on", format!("<t:{}>", db_entry.created_at.unix_timestamp()), false)
+                        .field("Surrounding messages", db_entry.message_id.link(channel_id, guild_id), false)
                         .color(Color::from_rgb(98,32,7))
                         .footer(footer);
                     log_channel_id.send_message(&ctx.http, CreateMessage::new().add_embed(embed).add_file(attachment)).await.unwrap();
@@ -93,8 +94,9 @@ impl LoggingQueue {
         ctx: &serenity::prelude::Context,
         deleting_message: serenity::all::MessageId,
         guild_id: Option<GuildId>,
+        channel_id: ChannelId
     ) {
-        do_image_logging(ctx.clone(), deleting_message, guild_id).await;
+        do_image_logging(ctx.clone(), deleting_message, guild_id, channel_id).await;
     }
 }
 
@@ -127,19 +129,23 @@ async fn reaction_logging(
         _ => String::new(),
     };
 
-    let title = match event_type {
-        "add" => "Reaction Added",
-        "remove" => "Reaction Removed",
-        "remove_all" => "All Reactions Removed",
-        "remove_emoji" => "Emoji Removed",
-        _ => "Reaction Event",
+    let (title, color): (&str, (u8, u8, u8)) = match event_type {
+        "add" => ("Reaction Added", (3, 252, 98)),
+        "remove" => ("Reaction Removed", (252, 7, 3)),
+        "remove_all" => ("All Reactions Removed", (77, 1, 0)),
+        "remove_emoji" => ("Emoji Removed", (145, 2, 0)),
+        _ => ("Reaction Event", (98, 32, 7)),
     };
 
+    let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
+    .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+
     embed_builder = embed_builder
-        .color(Color::from_rgb(98,32,7))
+        .color(Color::from_rgb(color.0, color.1, color.2))
         .title(title)
         .field("Channel", channel_id.mention().to_string(), true)
-        .field("Message", format!("[Jump to Message]({})", message_id.link(channel_id, guild_id)), false);
+        .field("Message", format!("{}", message_id.link(channel_id, guild_id)), false)
+        .footer(footer);
 
     if let Some(emoji) = emoji {
         embed_builder = embed_builder.field("Emoji", emoji.to_string(), false);
@@ -244,7 +250,7 @@ impl EventHandler for Handler {
             let message_id = new_message.id;
             for (i, log) in QUEUED_LOGGING.iter().enumerate() {
                 if log.message_id == message_id {
-                    log.do_image_logging(&ctx, message_id, new_message.guild_id).await;
+                    log.do_image_logging(&ctx, message_id, new_message.guild_id, new_message.channel_id).await;
                     QUEUED_LOGGING.remove(i);
                 }
             }
@@ -266,7 +272,7 @@ impl EventHandler for Handler {
                     return;
                 }
             };
-            do_image_logging(ctx, deleting_message, guild_id).await;
+            do_image_logging(ctx, deleting_message, guild_id, channel_id).await;
         }
     }
 
