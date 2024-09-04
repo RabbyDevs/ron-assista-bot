@@ -103,7 +103,7 @@ async fn convert_image(content_type: &str, input: String, quality_preset: Qualit
         std::fs::remove_file(&input).ok();
         
         if output.status.success() {
-            let gif_output = png_to_gif_converter(&png_output_filename, &output_filename, quality_preset);
+            let gif_output: Result<(), std::io::Error> = png_to_gif_converter(&png_output_filename, &output_filename, quality_preset);
             std::fs::remove_file(&png_output_filename).ok();
             handle_command_output(gif_output, output_filename.clone())
         } else {
@@ -116,20 +116,20 @@ async fn convert_image(content_type: &str, input: String, quality_preset: Qualit
         handle_command_output(output, output_filename.clone())
     };
 
-    if result.is_err() {
-        std::fs::remove_file(&output_filename).ok();
-    }
+    // if result.is_err() {
+    //     std::fs::remove_file(&output_filename).ok();
+    // }
     
     result
 }
 
-fn handle_command_output(output: std::process::Output, output_filename: String) -> Result<String, Error> {
-    if output.status.success() {
+fn handle_command_output(output: Result<(), std::io::Error>, output_filename: String) -> Result<String, Error> {
+    if output.is_ok() {
         Ok(output_filename)
     } else {
         Err(Error::from(format!(
             "Conversion failed: {}",
-            String::from_utf8_lossy(&output.stderr)
+            &output.err().unwrap().to_string()
         )))
     }
 }

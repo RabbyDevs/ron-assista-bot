@@ -3,10 +3,11 @@ use uuid::Uuid;
 use std::io::Write;
 use std::process::{Command, Output};
 use image::{GenericImageView, ImageBuffer, Rgba, DynamicImage};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use super::REQWEST_CLIENT;
 use std::fs;
 use rayon::prelude::*;
+use tempfile::tempdir;
 
 pub fn apply_mask(
     input_path: &str,
@@ -253,51 +254,142 @@ pub enum QualityPreset {
     Muted,
 }
 
-pub fn video_to_gif_converter(input_filename: &str, output_filename: &str, preset: QualityPreset) -> std::process::Output {
-    let (fps, colors, compression, quality, dither, bayer_scale, blend_expr, scale, additional_filters) = match preset {
-        QualityPreset::BestQuality => ("30", "256", "6", "100", "sierra2_4a", "0", "A", "1920:-1", ""),
-        QualityPreset::HighQuality => ("24", "256", "7", "95", "floyd_steinberg", "3", "A", "1280:-1", ""),
-        QualityPreset::StandardQuality => ("20", "192", "8", "85", "floyd_steinberg", "3", "A", "720:-1", ""),
-        QualityPreset::LowQuality => ("15", "128", "9", "75", "bayer", "2", "A", "480:-1", ""),
-        QualityPreset::LowestQuality => ("10", "64", "9", "60", "bayer", "1", "A", "320:-1", ""),
-        QualityPreset::FastConversion => ("15", "128", "9", "75", "bayer", "2", "A", "480:-1", ""),
-        QualityPreset::SmallFileSize => ("10", "64", "9", "60", "bayer", "1", "A", "320:-1", ""),
-        QualityPreset::LargeFileSize => ("30", "256", "6", "100", "sierra2_4a", "0", "A", "1920:-1", ""),
-        QualityPreset::HighFPS => ("60", "192", "8", "90", "floyd_steinberg", "3", "A", "1080:-1", ""),
-        QualityPreset::LowFPS => ("10", "192", "8", "85", "floyd_steinberg", "3", "A", "720:-1", ""),
-        QualityPreset::MaxColors => ("24", "256", "7", "95", "none", "0", "A", "1080:-1", ""),
-        QualityPreset::MinColors => ("15", "32", "9", "75", "bayer", "2", "A", "480:-1", ""),
-        QualityPreset::NoDither => ("24", "256", "7", "90", "none", "0", "A", "720:-1", ""),
-        QualityPreset::MaxDither => ("24", "128", "8", "85", "sierra2_4a", "5", "A", "720:-1", ""),
-        QualityPreset::Retro => ("12", "16", "9", "80", "none", "0", "A", "240:-1", "pixelate=24:24:0:0"),
-        QualityPreset::Vintage => ("18", "64", "8", "85", "floyd_steinberg", "3", "A", "640:-1", "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131,eq=saturation=0.7:gamma=1.2"),
-        QualityPreset::Vibrant => ("24", "256", "7", "95", "floyd_steinberg", "3", "A", "1080:-1", "eq=saturation=1.3:contrast=1.2"),
-        QualityPreset::Muted => ("24", "192", "8", "90", "floyd_steinberg", "3", "A", "720:-1", "eq=saturation=0.8:brightness=0.05"),
+pub fn video_to_gif_converter(input_filename: &str, output_filename: &str, preset: QualityPreset) -> std::io::Result<()> {
+    let (fps, colors, compression, quality, dither, bayer_scale, scale, additional_filters) = match preset {
+        QualityPreset::BestQuality => ("30", "256", "6", "100", "sierra2_4a", "0", "1920:-1", ""),
+        QualityPreset::HighQuality => ("24", "256", "7", "95", "floyd_steinberg", "3", "1280:-1", ""),
+        QualityPreset::StandardQuality => ("20", "192", "8", "85", "floyd_steinberg", "3", "720:-1", ""),
+        QualityPreset::LowQuality => ("15", "128", "9", "75", "bayer", "2", "480:-1", ""),
+        QualityPreset::LowestQuality => ("10", "64", "9", "60", "bayer", "1", "320:-1", ""),
+        QualityPreset::FastConversion => ("15", "128", "9", "75", "bayer", "2", "480:-1", ""),
+        QualityPreset::SmallFileSize => ("10", "64", "9", "60", "bayer", "1", "320:-1", ""),
+        QualityPreset::LargeFileSize => ("30", "256", "6", "100", "sierra2_4a", "0", "1920:-1", ""),
+        QualityPreset::HighFPS => ("60", "192", "8", "90", "floyd_steinberg", "3", "1080:-1", ""),
+        QualityPreset::LowFPS => ("10", "192", "8", "85", "floyd_steinberg", "3", "720:-1", ""),
+        QualityPreset::MaxColors => ("24", "256", "7", "95", "none", "0", "1080:-1", ""),
+        QualityPreset::MinColors => ("15", "32", "9", "75", "bayer", "2", "480:-1", ""),
+        QualityPreset::NoDither => ("24", "256", "7", "90", "none", "0", "720:-1", ""),
+        QualityPreset::MaxDither => ("24", "128", "8", "85", "sierra2_4a", "5", "720:-1", ""),
+        QualityPreset::Retro => ("12", "16", "9", "80", "none", "0", "240:-1", "pixelate=24:24:0:0"),
+        QualityPreset::Vintage => ("18", "64", "8", "85", "floyd_steinberg", "3", "640:-1", "colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131,eq=saturation=0.7:gamma=1.2"),
+        QualityPreset::Vibrant => ("24", "256", "7", "95", "floyd_steinberg", "3", "1080:-1", "eq=saturation=1.3:contrast=1.2"),
+        QualityPreset::Muted => ("24", "192", "8", "90", "floyd_steinberg", "3", "720:-1", "eq=saturation=0.8:brightness=0.05"),
     };
 
-    let filter_complex = format!(
-        "fps={fps},scale={scale}:flags=lanczos{},split[a][b];[a]palettegen=max_colors={colors}:reserve_transparent=0:stats_mode=full[p];[b][p]paletteuse=new=1:dither={dither}:bayer_scale={bayer_scale}:diff_mode=rectangle[c];[b][c]blend=all_expr='{blend_expr}':shortest=1[out]",
-        if additional_filters.is_empty() { String::new() } else { format!(",{}", additional_filters) }
-    );
+    // Create a temporary directory for storing intermediate files
+    let temp_dir = tempdir().expect("Failed to create temporary directory");
+    let temp_path = temp_dir.path();
 
-    let output = Command::new("ffmpeg")
+    // Split the video into 10-second segments
+    let segment_duration = 10;
+    let segment_pattern = temp_path.join("segment_%03d.mp4").to_str().unwrap().to_string();
+    
+    Command::new("ffmpeg")
         .args(&[
             "-i", input_filename,
-            "-filter_complex", &filter_complex,
-            "-map", "[out]",
-            "-loop", "0",
-            "-compression_level", compression,
-            "-quality", quality,
-            "-fs", "100M",
-            output_filename
+            "-c", "copy",
+            "-f", "segment",
+            "-segment_time", &segment_duration.to_string(),
+            "-reset_timestamps", "1",
+            &segment_pattern,
         ])
         .output()
-        .expect("Failed to execute FFmpeg command.");
-   
-    output
+        .expect("Failed to split video into segments");
+
+    // Process segments incrementally
+    let mut processed_segments = Vec::new();
+    for entry in fs::read_dir(temp_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) == Some("mp4") {
+            let output_gif = path.with_extension("gif");
+            let filter_complex = format!(
+                "[0:v] fps={fps},scale={scale}:flags=lanczos{} [scaled];
+                [scaled] split [a][b];
+                [a] palettegen=max_colors={colors}:reserve_transparent=0:stats_mode=diff [p];
+                [b][p] paletteuse=new=1:dither={dither}:bayer_scale={bayer_scale}:diff_mode=rectangle",
+                if additional_filters.is_empty() { String::new() } else { format!(",{}", additional_filters) }
+            );
+
+            Command::new("ffmpeg")
+                .args(&[
+                    "-i", path.to_str().unwrap(),
+                    "-filter_complex", &filter_complex,
+                    "-compression_level", compression,
+                    "-quality", quality,
+                    output_gif.to_str().unwrap(),
+                ])
+                .output()
+                .expect("Failed to convert segment to GIF");
+
+            processed_segments.push(output_gif);
+
+            // Combine processed segments when we have a certain number (e.g., 5)
+            if processed_segments.len() >= 5 {
+                combine_gifs(&processed_segments, temp_path, output_filename)?;
+                processed_segments.clear();
+            }
+        }
+    }
+
+    // Combine any remaining segments
+    if !processed_segments.is_empty() {
+        combine_gifs(&processed_segments, temp_path, output_filename)?;
+    }
+
+    // Clean up temporary files
+    temp_dir.close().expect("Failed to clean up temporary directory");
+
+    Ok(())
 }
 
-pub fn png_to_gif_converter(input_filename: &str, output_filename: &str, preset: QualityPreset) -> std::process::Output {
+fn combine_gifs(segments: &[PathBuf], temp_path: &Path, output_filename: &str) -> std::io::Result<()> {
+    let concat_list = temp_path.join("concat_list.txt");
+    let mut concat_file = fs::File::create(&concat_list)?;
+    for gif in segments {
+        writeln!(concat_file, "file '{}'", gif.to_str().unwrap())?;
+    }
+
+    let temp_output = temp_path.join("temp_output.gif");
+    Command::new("ffmpeg")
+        .args(&[
+            "-f", "concat",
+            "-safe", "0",
+            "-i", concat_list.to_str().unwrap(),
+            "-filter_complex", "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
+            temp_output.to_str().unwrap(),
+        ])
+        .output()
+        .expect("Failed to concatenate GIF segments");
+
+    // Append the temp_output to the final output file
+    if Path::new(output_filename).exists() {
+        let final_concat_list = temp_path.join("final_concat_list.txt");
+        let mut final_concat_file = fs::File::create(&final_concat_list)?;
+        writeln!(final_concat_file, "file '{}'", output_filename)?;
+        writeln!(final_concat_file, "file '{}'", temp_output.to_str().unwrap())?;
+
+        Command::new("ffmpeg")
+            .args(&[
+                "-f", "concat",
+                "-safe", "0",
+                "-i", final_concat_list.to_str().unwrap(),
+                "-c", "copy",
+                "-fs", "100M",
+                &format!("{}.tmp", output_filename),
+            ])
+            .output()
+            .expect("Failed to append to final GIF");
+
+        fs::rename(format!("{}.tmp", output_filename), output_filename)?;
+    } else {
+        fs::rename(temp_output, output_filename)?;
+    }
+
+    Ok(())
+}
+
+pub fn png_to_gif_converter(input_filename: &str, output_filename: &str, preset: QualityPreset) -> std::io::Result<()> {
     let (colors, compression, quality, dither, bayer_scale, scale, additional_filters) = match preset {
         QualityPreset::BestQuality => ("256", "6", "100", "sierra2_4a", "0", "1920:-1", ""),
         QualityPreset::HighQuality => ("256", "7", "95", "floyd_steinberg", "3", "1280:-1", ""),
@@ -324,7 +416,7 @@ pub fn png_to_gif_converter(input_filename: &str, output_filename: &str, preset:
         if additional_filters.is_empty() { String::new() } else { format!(",{}", additional_filters) }
     );
 
-    let output = Command::new("ffmpeg")
+    Command::new("ffmpeg")
         .args(&[
             "-i", input_filename,
             "-filter_complex", &filter_complex,
@@ -334,8 +426,7 @@ pub fn png_to_gif_converter(input_filename: &str, output_filename: &str, preset:
             "-fs", "100M",
             output_filename
         ])
-        .output()
-        .expect("Failed to execute FFmpeg command.");
+        .output()?;
    
-    output
+    Ok(())
 }
