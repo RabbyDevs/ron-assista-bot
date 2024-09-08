@@ -42,9 +42,8 @@ pub async fn speechbubble(
     // };
 
     // let overlay_path = format!("default_masks/{}", style);
-    // let input_path = format!("./tmp/{}.{}");
+    // // let input_path = format!("./tmp/{}.{}");
     // apply_mask(input_path, &overlay_path, output_path, flip, height_float, transparent);
-    ctx.say("Coming soon.").await.unwrap();
 
     Ok(())
 }

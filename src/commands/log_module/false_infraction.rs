@@ -85,7 +85,7 @@ pub async fn false_infraction(
 
     for (index, mod_id) in mod_ids.iter().enumerate() {
         if index + 1 == mod_ids.len() {
-            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().name, mod_id.to_string());
+            let mut response = format!("[{}]\n[{}:{}]", infraction_type.name(), mod_id.to_user(&ctx.http()).await.unwrap().mention(), mod_id.to_string());
             for affected_id in &affected_ids {
                 let result = do_affected_id(affected_id).await;
                 for err in result.1 {
