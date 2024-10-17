@@ -3,7 +3,6 @@ use chrono::{DateTime, Local};
 use regex::Regex;
 use serenity::all::EditMessage;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter};
-use serenity::model::colour::Colour;
 use serenity::builder::CreateMessage;
 use super::{Context, Error, helper, FromStr, CONFIG};
 
@@ -46,13 +45,13 @@ pub async fn getinfo(
         let avatar_image = helper::get_roblox_avatar_bust(&ctx.data().reqwest_client, user_details.id.to_string()).await;
         // Prepare initial embed with basic info
         let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
-        .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+        .icon_url(ctx.framework().bot_id.to_user(ctx.http()).await?.avatar_url().unwrap());
         let mut embed = CreateEmbed::default()
-            .title(format!("Extra Information - [{}](https://en.help.roblox.com/hc/en-us/articles/4401938870292-Changing-Your-Display-Name)", user_details.display_name))
-            .color(Colour::from_rgb(98,32,7))
+            .title(format!("Extra Information - {}", user_details.display_name))
+            .color(ctx.data().bot_color)
             .footer(footer)
             .thumbnail(format!("{}", avatar_image.as_str()))
-            .field("User Link", format!("https://roblox.com/users/{}", user_details.id), false);
+            .field("User Link", format!("https://roblox.com/users/{}", user_details.id), true);
 
         let sanitized_description = new_line_regex.replace(&user_details.description, "").into_owned();
         let created_at: DateTime<Local> = DateTime::from_str(&user_details.created_at).expect("Invalid date");
@@ -73,22 +72,22 @@ pub async fn getinfo(
         
         // Execute friend count first and update the embed
         if let Ok(friend_count) = friend_count_future.await {
-            embed = embed.field("Friend Count", friend_count.to_string(), false);
+            embed = embed.field("Friend Count", friend_count.to_string(), true);
             init_message.edit(&ctx.http(), EditMessage::new().add_embed(embed.clone())).await?;
         }
         
         // Execute group count next and update the embed
         if let Ok(group_count) = group_count_future.await {
-            embed = embed.field("Group Count", group_count.to_string(), false);
+            embed = embed.field("Group Count", group_count.to_string(), true);
             init_message.edit(&ctx.http(), EditMessage::new().add_embed(embed.clone())).await?;
         }
         
         // Execute badge data last
         if let Ok((badge_count, win_rate, awarders_string)) = badge_data_future.await {
             embed = embed
-                .field("Badge Count", badge_count.to_string(), false)
-                .field("Average Win Rate", format!("{:.3}%", win_rate), false)
-                .field("Top Badge Givers", awarders_string, false);
+                .field("Badge Count", badge_count.to_string(), true)
+                .field("Average Win Rate", format!("{:.3}%", win_rate), true)
+                .field("Top Badge Givers", awarders_string, true);
             init_message.edit(&ctx.http(), EditMessage::new().add_embed(embed.clone())).await?;
         }
 

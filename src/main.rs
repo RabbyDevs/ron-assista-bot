@@ -46,11 +46,12 @@ struct Data {
     pub attachment_db: Arc<Mutex<AttachmentStoreDB>>,
     pub queued_logs: Arc<Mutex<Vec<LoggingQueue>>>,
     pub policy_system: PolicySystem,
+    pub bot_color: Color
 } // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-async fn do_image_logging(ctx: &serenity::Context, reqwest_client: Arc<reqwest::Client>, attachment_db: Arc<Mutex<AttachmentStoreDB>>, deleting_message: serenity::all::MessageId, guild_id: Option<GuildId>, channel_id: ChannelId) {
+async fn do_image_logging(ctx: &serenity::Context, bot_icon: String, bot_color: Color, reqwest_client: Arc<reqwest::Client>, attachment_db: Arc<Mutex<AttachmentStoreDB>>, deleting_message: serenity::all::MessageId, guild_id: Option<GuildId>, channel_id: ChannelId) {
     let db_entry = match attachment_db.lock().unwrap().get(deleting_message.to_string().as_str()) {
         Some(entry) => entry,
         None => {
@@ -62,6 +63,7 @@ async fn do_image_logging(ctx: &serenity::Context, reqwest_client: Arc<reqwest::
         let ctx = ctx.clone();
         let guild_id = guild_id.clone();
         let reqwest_client = reqwest_client.clone();
+        let bot_icon= bot_icon.clone();
         tokio::spawn(async move {
             if guild_id.is_some() && guild_id.unwrap().to_string() == CONFIG.modules.logging.guild_id.to_string() {
                 let log_channel_id = ChannelId::new(CONFIG.modules.logging.logging_channel_id.parse::<u64>().unwrap());
@@ -73,12 +75,12 @@ async fn do_image_logging(ctx: &serenity::Context, reqwest_client: Arc<reqwest::
                 drop(file);
                 let attachment = CreateAttachment::file(&tokio::fs::File::open(&output_filename).await.unwrap(), &attachment.filename).await.unwrap();
                 let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
-                    .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+                    .icon_url(bot_icon);
                 let embed = CreateEmbed::new().title("Attachment Log")
                     .field("User", format!("<@{}> - {}", db_entry.user_id, db_entry.user_id), false)
                     .field("Sent on", format!("<t:{}>", db_entry.created_at.unix_timestamp()), false)
                     .field("Surrounding messages", db_entry.message_id.link(channel_id, guild_id), false)
-                    .color(Color::from_rgb(98,32,7))
+                    .color(bot_color)
                     .footer(footer);
                 log_channel_id.send_message(&ctx.http, CreateMessage::new().add_embed(embed).add_file(attachment)).await.unwrap();
                 std::fs::remove_file(output_filename).unwrap();
@@ -98,20 +100,23 @@ impl LoggingQueue {
     pub async fn do_image_logging(
         &self,
         ctx: &serenity::Context,
+        bot_icon: String,
+        bot_color: Color,
         reqwest_client: Arc<reqwest::Client>,
         attachment_db: Arc<Mutex<AttachmentStoreDB>>,
         deleting_message: serenity::all::MessageId,
         guild_id: Option<GuildId>,
         channel_id: ChannelId
     ) {
-        do_image_logging(ctx, reqwest_client, attachment_db, deleting_message, guild_id, channel_id).await;
+        do_image_logging(ctx, bot_icon, bot_color, reqwest_client, attachment_db, deleting_message, guild_id, channel_id).await;
     }
 }
 
 static DODGED_FILE_FORMATS: Lazy<Vec<String>> = Lazy::new(|| vec!["video/mp4".to_string(), "video/webm".to_string(), "video/quicktime".to_string()]);
 
 async fn reaction_logging(
-    ctx: &serenity::prelude::Context, 
+    ctx: &serenity::prelude::Context,
+    bot_image: String,
     event_type: &str, 
     user_id: Option<UserId>, 
     channel_id: ChannelId, 
@@ -140,7 +145,7 @@ async fn reaction_logging(
     };
 
     let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.")
-    .icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
+    .icon_url(bot_image);
 
     embed_builder = embed_builder
         .color(Color::from_rgb(color.0, color.1, color.2))
@@ -257,7 +262,7 @@ async fn event_handler(
             while i < data.queued_logs.lock().unwrap().len() {
                 let log = data.queued_logs.lock().unwrap().get(i).unwrap().clone();
                 if log.message_id == message_id {
-                    log.do_image_logging(&ctx, data.reqwest_client.clone(), data.attachment_db.clone(), message_id, new_message.guild_id, new_message.channel_id).await;
+                    log.do_image_logging(&ctx,  _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(), data.bot_color, data.reqwest_client.clone(), data.attachment_db.clone(), message_id, new_message.guild_id, new_message.channel_id).await;
                     data.queued_logs.lock().unwrap().remove(i);
                 }
                 i += 1
@@ -277,7 +282,7 @@ async fn event_handler(
                     return Ok(());
                 }
             };
-            do_image_logging(ctx, data.reqwest_client.clone(), data.attachment_db.clone(), *deleted_message_id, *guild_id, *channel_id).await;
+            do_image_logging(ctx, _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(), data.bot_color, data.reqwest_client.clone(), data.attachment_db.clone(), *deleted_message_id, *guild_id, *channel_id).await;
         }
 
         serenity::FullEvent::GuildMemberAddition { new_member } => {
@@ -302,6 +307,7 @@ async fn event_handler(
         serenity::FullEvent::ReactionAdd { add_reaction } => {
             reaction_logging(
                 ctx, 
+                _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(),
                 "add", 
                 Some(add_reaction.user_id.unwrap()), 
                 add_reaction.channel_id, 
@@ -314,6 +320,7 @@ async fn event_handler(
         serenity::FullEvent::ReactionRemove { removed_reaction } => {
             reaction_logging(
                 ctx, 
+                _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(),
                 "remove", 
                 Some(removed_reaction.user_id.unwrap()), 
                 removed_reaction.channel_id, 
@@ -326,6 +333,7 @@ async fn event_handler(
         serenity::FullEvent::ReactionRemoveAll { channel_id, removed_from_message_id } => {
             reaction_logging(
                 ctx, 
+                _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(),
                 "remove_all", 
                 None, 
                 *channel_id, 
@@ -338,6 +346,7 @@ async fn event_handler(
         serenity::FullEvent::ReactionRemoveEmoji { removed_reactions } => {
             reaction_logging(
                 ctx, 
+                _framework.bot_id.to_user(ctx.http()).await?.avatar_url().unwrap(),
                 "remove_emoji", 
                 None, 
                 removed_reactions.channel_id, 
@@ -382,6 +391,15 @@ async fn main() {
                 media_effects::media(),
                 policy::policy()
             ];
+
+    let color_string = CONFIG.main.color; // Assuming this retrieves the "43, 63, 102" string
+    let colors: Vec<u8> = color_string
+        .split(',')
+        .map(|s| u8::from_str(s.trim()).expect("Failed to parse color component"))
+        .collect();
+            
+    let (r, g, b) = (colors[0], colors[1], colors[2]); // Extract r, g, b values
+    
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands,
@@ -390,7 +408,7 @@ async fn main() {
             },
             ..Default::default()
         })
-        .setup(|ctx, _ready, framework| {
+        .setup(move |ctx, _ready, framework| {
             let activity = ActivityData::custom(format!("Running on v{}!", env!("CARGO_PKG_VERSION")));
             let status = OnlineStatus::Online;
 
@@ -404,7 +422,8 @@ async fn main() {
                     timer_system: Arc::new(TimerSystem::new("probation_role").unwrap()),
                     attachment_db: AttachmentStoreDB::get_instance(),
                     queued_logs: Arc::new(Mutex::new(vec![])),
-                    policy_system: PolicySystem::init("./policy_system").unwrap()
+                    policy_system: PolicySystem::init("./policy_system").unwrap(),
+                    bot_color: Color::from_rgb(r, g, b)
                 })
             })
         })

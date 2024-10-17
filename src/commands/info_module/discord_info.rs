@@ -1,5 +1,5 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use ::serenity::all::{Colour, CreateEmbed, CreateEmbedFooter, CreateMessage, RoleId};
+use ::serenity::all::{CreateEmbed, CreateEmbedFooter, CreateMessage, RoleId};
 use serenity::User;
 use std::collections::HashMap;
 use super::{Context, Error, UserId, serenity, FromStr};
@@ -62,8 +62,8 @@ pub async fn discordinfo(
             None => "No nickname set.".to_string()
         };
 
-        let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.").icon_url("https://cdn.discordapp.com/icons/1094323433032130613/6f89f0913a624b2cdb6d663f351ac06c.webp");
-        let color = Colour::from_rgb(98,32,7);
+        let footer = CreateEmbedFooter::new("Made by RabbyDevs, with 🦀 and ❤️.").icon_url(ctx.framework().bot_id.to_user(ctx.http()).await?.avatar_url().unwrap());
+        let color = ctx.data().bot_color;
         let mut first_embed = CreateEmbed::default()
             .title("Extra User Information")
             .field("Username", format!("{}",user.name), true)
