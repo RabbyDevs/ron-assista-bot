@@ -1,10 +1,9 @@
 use crate::Data;
-
 use super::{Context, Error};
 use poise::Modal;
 
 #[poise::command(slash_command, prefix_command, 
-    subcommands("edit", "delete", "publish", "list"),
+    subcommands("edit", "delete", "publish", "list", "clear_all"),
     subcommand_required)]
 /// Command for managing policies
 pub async fn policy(_: Context<'_>) -> Result<(), Error> {
@@ -19,15 +18,11 @@ struct EditModal {
     content: String,
 }
 
-
 #[poise::command(slash_command)]
 /// Edit an existing policy
 pub async fn edit(
     ctx: poise::ApplicationContext<'_, Data, Error>,
     #[description = "Policy internal name"] internal_name: String,
-    // #[description = "New title"] title: String,
-    // #[description = "New content"] content: String,
-    // #[description = "Order value for the policy"] order: u64,
 ) -> Result<(), Error> {
     let policy_system = &ctx.data().policy_system;
 
@@ -81,6 +76,29 @@ pub async fn list(
     }
 
     ctx.say(policy_list_string).await?;
+
+    Ok(())
+}
+
+#[poise::command(slash_command, prefix_command)]
+/// Clear all policies
+pub async fn clear_all(
+    ctx: Context<'_>
+) -> Result<(), Error> {
+    let policy_system = &ctx.data().policy_system;
+    
+    // Ask for confirmation
+    let confirmation = poise::ConfirmationMenu::new(ctx)
+        .content("Are you sure you want to clear all policies? This action cannot be undone.")
+        .await?;
+    
+    if confirmation {
+        // Clear all policies
+        policy_system.clear_all().unwrap();
+        ctx.say("All policies have been cleared.").await?;
+    } else {
+        ctx.say("Operation cancelled. No policies were cleared.").await?;
+    }
 
     Ok(())
 }

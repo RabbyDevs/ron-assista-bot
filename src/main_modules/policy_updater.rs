@@ -110,7 +110,6 @@ impl PolicySystem {
         // Send the current policy to the policy channel in sections
         let policy_channel_id = CONFIG.modules.policy.policy_channel_id.parse::<u64>().unwrap();
         let policy_channel = ctx.http.get_channel(policy_channel_id.into()).await.unwrap();
-        let mut message_links = HashMap::new();
     
         let policy_actual_id = ChannelId::new(policy_channel_id);
         // Step 1: Delete all messages in the policy channel
@@ -130,16 +129,28 @@ impl PolicySystem {
             tokio::time::sleep(Duration::from_millis(1000)).await; // Avoid rate limits
         }
     
+        let mut message_links = Vec::new();
+
         for (_, policy) in policies.iter() {
             let messages = send_long_message(ctx, &policy_channel.id(), &format!("{}\n** **", policy.content)).await;
-            message_links.insert(policy.order.clone(), (remove_hash_from_first_line(policy.content.as_str()), messages.last().unwrap().link()));
+            let first_heading = extract_first_heading(&policy.content);
+            if let Some(heading) = first_heading {
+                message_links.push((heading, messages.last().unwrap().link()));
+            }
         }
+    
+        // Sort message_links by the numeric prefix of the heading
+        message_links.sort_by(|(a, _), (b, _)| {
+            let a_num = extract_number(a);
+            let b_num = extract_number(b);
+            a_num.cmp(&b_num)
+        });
     
         let mut toc_content = String::new();
     
         // Prepare the table of contents with links
-        for (key, (title, link)) in message_links.iter() {
-            toc_content.push_str(&format!("{}. [{}]({})\n", key, title, link));
+        for (index, (heading, link)) in message_links.iter().enumerate() {
+            toc_content.push_str(&format!("{}. [{}]({})\n", index + 1, heading, link));
         }
     
         // Send the table of contents, splitting if necessary
@@ -148,6 +159,14 @@ impl PolicySystem {
         // Move current policy file to previous
         fs::rename(current_file_path, previous_file_path)?;
     
+        Ok(())
+    }
+
+    pub fn clear_all(&self) -> sled::Result<()> {
+        let policies = self.list_policies_internal_names()?;
+        for (internal_name, _) in policies {
+            self.db.remove(internal_name)?;
+        }
         Ok(())
     }
 }
@@ -207,4 +226,19 @@ fn split_message(content: &str) -> (&str, &str) {
     }
 
     content.split_at(split_index)
+}
+
+// Helper function to extract the first heading from the content
+fn extract_first_heading(content: &str) -> Option<String> {
+    content.lines()
+        .find(|line| line.starts_with('#'))
+        .map(|line| line.trim_start_matches('#').trim().to_string())
+}
+
+// Helper function to extract the numeric prefix from a heading
+fn extract_number(heading: &str) -> u32 {
+    heading.split_whitespace()
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(u32::MAX)  // If parsing fails, consider it as the largest number
 }
