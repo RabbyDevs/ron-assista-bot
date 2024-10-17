@@ -80,24 +80,84 @@ pub async fn list(
     Ok(())
 }
 
+use poise::serenity_prelude as serenity;
+
 #[poise::command(slash_command, prefix_command)]
 /// Clear all policies
-pub async fn clear_all(
-    ctx: Context<'_>
-) -> Result<(), Error> {
+pub async fn clear_all(ctx: Context<'_>) -> Result<(), Error> {
     let policy_system = &ctx.data().policy_system;
-    
-    // Ask for confirmation
-    let confirmation = poise::ConfirmationMenu::new(ctx)
-        .content("Are you sure you want to clear all policies? This action cannot be undone.")
-        .await?;
-    
-    if confirmation {
-        // Clear all policies
-        policy_system.clear_all().unwrap();
-        ctx.say("All policies have been cleared.").await?;
+    let uuid_yes = ctx.id();
+    let uuid_no = uuid::Uuid::new_v4();
+
+    let reply = {
+        let components = vec![serenity::CreateActionRow::Buttons(vec![
+            serenity::CreateButton::new(format!("{uuid_yes}"))
+                .style(serenity::ButtonStyle::Danger)
+                .label("Yes, Clear All"),
+            serenity::CreateButton::new(format!("{uuid_no}"))
+                .style(serenity::ButtonStyle::Secondary)
+                .label("No, Cancel"),
+        ])];
+        poise::CreateReply::default()
+            .content("Are you sure you want to clear all policies? This action cannot be undone.")
+            .components(components)
+    };
+
+    ctx.send(reply).await?;
+
+    if let Some(mci) = serenity::ComponentInteractionCollector::new(ctx)
+        .author_id(ctx.author().id)
+        .channel_id(ctx.channel_id())
+        .timeout(std::time::Duration::from_secs(60))
+        .filter(move |mci| mci.data.custom_id == uuid_yes.to_string() || mci.data.custom_id == uuid_no.to_string())
+        .await
+    {
+        if mci.data.custom_id == uuid_yes.to_string() {
+            // Actually clear all policies
+            match policy_system.clear_all() {
+                Ok(_) => {
+                    mci.create_response(
+                        ctx,
+                        serenity::CreateInteractionResponse::UpdateMessage(
+                            serenity::CreateInteractionResponseMessage::new()
+                                .content("All policies have been cleared successfully.")
+                                .components(vec![]),
+                        ),
+                    )
+                    .await?;
+                },
+                Err(e) => {
+                    mci.create_response(
+                        ctx,
+                        serenity::CreateInteractionResponse::UpdateMessage(
+                            serenity::CreateInteractionResponseMessage::new()
+                                .content(format!("An error occurred while clearing policies: {:?}", e))
+                                .components(vec![]),
+                        ),
+                    )
+                    .await?;
+                }
+            }
+        } else {
+            // User clicked "No"
+            mci.create_response(
+                ctx,
+                serenity::CreateInteractionResponse::UpdateMessage(
+                    serenity::CreateInteractionResponseMessage::new()
+                        .content("Operation cancelled. No policies were cleared.")
+                        .components(vec![]),
+                ),
+            )
+            .await?;
+        }
     } else {
-        ctx.say("Operation cancelled. No policies were cleared.").await?;
+        // Timeout occurred, update the message
+        ctx.channel_id()
+            .say(
+                &ctx.serenity_context(),
+                "Operation timed out. No policies were cleared.",
+            )
+            .await?;
     }
 
     Ok(())

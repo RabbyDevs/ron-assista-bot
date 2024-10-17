@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, io::Write, path::Path, time::Duration};
+use std::{fs, io::Write, path::Path, time::Duration};
 use futures::StreamExt;
 use serde::{Serialize, Deserialize};
 use serenity::all::{ChannelId, Context, Message};
@@ -189,43 +189,32 @@ fn diff_policies(previous: &str, current: &str) -> String {
     changes
 }
 
-fn remove_hash_from_first_line(input: &str) -> String {
-    // Get the first line of the input string
-    let first_line = input.lines().next().unwrap_or("");
-    
-    // Remove '#' characters from the beginning of the line
-    let trimmed_line = first_line.trim_start_matches('#');
-    
-    trimmed_line.to_string()
-}
-
-    // Helper function to send long messages
 async fn send_long_message(ctx: &Context, channel_id: &ChannelId, content: &str) -> Vec<Message> {
     let mut messages = Vec::new();
-    let mut remaining = content;
+    let mut buffer = String::new();
+    
+    for line in content.lines() {
+        // Check if adding the next line would exceed the 2000 character limit
+        if buffer.len() + line.len() + 1 > 2000 {
+            // Send the current buffer as a message
+            let message = channel_id.say(ctx, buffer.clone()).await.unwrap();
+            messages.push(message);
+            // Reset the buffer
+            buffer.clear();
+        }
+        
+        // Append the line to the buffer, adding a newline
+        buffer.push_str(line);
+        buffer.push('\n');
+    }
 
-    while !remaining.is_empty() {
-        let (chunk, rest) = split_message(remaining);
-        let message = channel_id.say(ctx, chunk).await.unwrap();
+    // Send any remaining content in the buffer
+    if !buffer.is_empty() {
+        let message = channel_id.say(ctx, buffer).await.unwrap();
         messages.push(message);
-        remaining = rest;
     }
 
     messages
-}
-
-// Helper function to split a message into chunks
-fn split_message(content: &str) -> (&str, &str) {
-    if content.len() <= 2000 {
-        return (content, "");
-    }
-
-    let mut split_index = 2000;
-    while !content.is_char_boundary(split_index) {
-        split_index -= 1;
-    }
-
-    content.split_at(split_index)
 }
 
 // Helper function to extract the first heading from the content
