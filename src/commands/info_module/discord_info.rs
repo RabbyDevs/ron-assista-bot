@@ -2,7 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use ::serenity::all::{Colour, CreateEmbed, CreateEmbedFooter, CreateMessage, RoleId};
 use serenity::User;
 use std::collections::HashMap;
-use super::{Context, Error, UserId, serenity, FromStr, NUMBER_REGEX};
+use super::{Context, Error, UserId, serenity, FromStr};
 
 fn split_string(s: String, chunk_size: usize) -> Vec<String> {
     s.chars()
@@ -15,30 +15,30 @@ fn split_string(s: String, chunk_size: usize) -> Vec<String> {
 #[poise::command(slash_command, prefix_command)]
 /// Gets all possible information about the discord account.
 pub async fn discordinfo(
-    interaction: Context<'_>,
+    ctx: Context<'_>,
     #[description = "Discord user ids for the command."] users: String,
 ) -> Result<(), Error> {
-    interaction.reply("Getting user info, please standby!").await?;
-    let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    ctx.reply("Getting user info, please standby!").await?;
+    let purified_users = ctx.data().number_regex.replace_all(users.as_str(), "");
     if purified_users.is_empty() {
-        interaction.say("Command failed; no users inputted, or users improperly inputted.").await?;
+        ctx.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
     }
     let users = purified_users.split(' ');
     for snowflake in users {
         let userid: UserId = UserId::from_str(snowflake).expect("something went wrong.");
-        let user: User = match userid.to_user(&interaction.http()).await {
+        let user: User = match userid.to_user(&ctx.http()).await {
             Ok(user) => user,
             Err(_) => {
-                interaction.say(format!("An error occurred attempting to process user `{}`. Skipping user's log.", snowflake)).await?;
+                ctx.say(format!("An error occurred attempting to process user `{}`. Skipping user's log.", snowflake)).await?;
                 continue;
             }
         };
 
-        interaction.channel_id().say(&interaction.http(), "### User Id").await?;
-        interaction.channel_id().say(&interaction.http(), format!("{}", user.id)).await?;
-        interaction.channel_id().say(&interaction.http(), "### User Mention").await?;
-        interaction.channel_id().say(&interaction.http(), format!(r"<\@{}>", user.id)).await?;
+        ctx.channel_id().say(&ctx.http(), "### User Id").await?;
+        ctx.channel_id().say(&ctx.http(), format!("{}", user.id)).await?;
+        ctx.channel_id().say(&ctx.http(), "### User Mention").await?;
+        ctx.channel_id().say(&ctx.http(), format!(r"<\@{}>", user.id)).await?;
 
         let created_at_timestamp = user.created_at().unix_timestamp();
         let account_age = SystemTime::now().duration_since(UNIX_EPOCH)? - Duration::from_secs(created_at_timestamp as u64);
@@ -74,8 +74,8 @@ pub async fn discordinfo(
             .color(color.clone());
         let mut embeds = vec![];
 
-        if let Some(guild_id) = interaction.guild_id() {
-            if let Ok(member) = guild_id.member(&interaction.http(), userid).await {
+        if let Some(guild_id) = ctx.guild_id() {
+            if let Ok(member) = guild_id.member(&ctx.http(), userid).await {
                 let nickname = match member.clone().nick {
                     Some(nickname) => nickname,
                     None => "No nickname set.".to_string()
@@ -83,7 +83,7 @@ pub async fn discordinfo(
         
                 let mut role_permissions: HashMap<RoleId, Vec<&'static str>> = HashMap::new();
                 
-                if let Ok(guild) = guild_id.to_partial_guild(&interaction.http()).await {
+                if let Ok(guild) = guild_id.to_partial_guild(&ctx.http()).await {
                     for (role_id, role) in &guild.roles {
                         let perm_names: Vec<&'static str> = role.permissions
                             .iter_names()
@@ -144,7 +144,7 @@ pub async fn discordinfo(
                 embeds.extend(perms_embeds);
 
                 if embeds.len() > 10 {
-                    interaction.channel_id().say(&interaction.http(), "Warning: Too many embeds to send in one message. Some information may be truncated.").await?;
+                    ctx.channel_id().say(&ctx.http(), "Warning: Too many embeds to send in one message. Some information may be truncated.").await?;
                     embeds.truncate(10);
                 }
             }
@@ -155,7 +155,7 @@ pub async fn discordinfo(
             embeds.push(first_embed);
         }
 
-        interaction.channel_id().send_message(&interaction.http(), CreateMessage::default().embeds(embeds)).await?;
+        ctx.channel_id().send_message(&ctx.http(), CreateMessage::default().embeds(embeds)).await?;
     }
     Ok(())
 }

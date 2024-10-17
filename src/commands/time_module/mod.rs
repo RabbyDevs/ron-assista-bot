@@ -1,3 +1,3 @@
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, NUMBER_REGEX, TIMER_SYSTEM};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr};
 
 pub mod timed_role;

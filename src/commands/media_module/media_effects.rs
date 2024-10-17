@@ -1,7 +1,6 @@
-use std::fmt::{self, Display};
-
-use poise::ChoiceParameter;
-use serenity::all::Attachment;
+use std::{fmt, io::Write};
+use serenity::all::{Attachment, EditMessage};
+use uuid::Uuid;
 
 use super::{Context, Error, apply_mask};
 
@@ -22,28 +21,57 @@ impl fmt::Display for SpeechBubbleOverlays {
     }
 }
 
-#[poise::command(slash_command, prefix_command,
-    subcommands(
-        "speechbubble",
-    ))]
+use std::{fs, path::Path};
+
+#[poise::command(slash_command, prefix_command, subcommand_required, subcommands("speechbubble"))]
+pub async fn media(_: Context<'_>) -> Result<(), Error> {
+    Ok(())
+}
+
+#[poise::command(prefix_command, slash_command)]
 /// Command for adding a speech bubble to any image or video, with the ability to convert to gif.
 pub async fn speechbubble(
     ctx: Context<'_>,
     #[description = "Attachment for command."] attachment: Attachment,
-    #[description = "A bit technical, but what should the height of the overlay be divided by?"] height_float: Option<f32>,
     #[description = "Overlay type, defaults to esm bot style."] style: Option<SpeechBubbleOverlays>,
+    #[description = "A bit technical, but what should the height of the overlay be divided by? In 0.0-1.0."] height_float: Option<f32>,
     #[description = "Should the speech bubble be flipped horizontally?"] flip: Option<bool>,
     #[description = "Should the speech bubble be transparent? By default set to true if image."] transparent: Option<bool>,
 ) -> Result<(), Error> {
-    // let style = if style.is_some() {
-    //     style.unwrap()
-    // } else {
-    //     SpeechBubbleOverlays::EsmBotStyle
-    // };
+    let msg = ctx.say("Adding speechbubble...").await?;
+    let style = style.unwrap_or(SpeechBubbleOverlays::EsmBotStyle);
 
-    // let overlay_path = format!("default_masks/{}", style);
-    // // let input_path = format!("./tmp/{}.{}");
-    // apply_mask(input_path, &overlay_path, output_path, flip, height_float, transparent);
+    let response = ctx.data().reqwest_client.get(&attachment.url).send().await?;
+    let bytes = response.bytes().await?;
+
+    let input_extension = Path::new(&attachment.filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .ok_or("Invalid file extension")?
+        .to_lowercase();
+
+    let input_path = match input_extension.as_str() {
+        "png" | "jpg" | "jpeg" | "mp4" | "mov" => format!("./.tmp/input_{}.{}", Uuid::new_v4(), input_extension),
+        _ => return Err("Unsupported file format".into()),
+    };
+
+    let mut file = fs::File::create(&input_path)?;
+    file.write_all(&bytes)?;
+    
+    let overlay_path = format!("./.default_masks/{}.png", style);
+    let output_path = format!("./.tmp/{}", attachment.filename);
+
+    if !Path::new(&overlay_path).exists() {
+        return Err(format!("Overlay file not found: {}", overlay_path).into());
+    }
+
+    apply_mask(&input_path, &overlay_path, &output_path, flip.unwrap_or(false), height_float.unwrap_or(0.2), transparent.unwrap_or(true)).unwrap();
+
+    let file = serenity::all::CreateAttachment::path(&output_path).await?;
+    msg.into_message().await?.edit(ctx.http(), EditMessage::new().new_attachment(file).content("Done!")).await?;
+
+    fs::remove_file(&input_path)?;
+    fs::remove_file(&output_path)?;
 
     Ok(())
 }

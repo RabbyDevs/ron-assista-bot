@@ -179,7 +179,7 @@ impl TimerSystem {
         });
     }
 
-    pub async fn set_event_handler<F, Fut>(&mut self, handler: F)
+    pub async fn set_event_handler<F, Fut>(&self, handler: F)
     where
         F: Fn(String, String) -> Fut + Send + Sync + 'static,
         Fut: futures::Future<Output = ()> + Send + 'static,

@@ -5,9 +5,9 @@ use super::{Context, Error};
 #[poise::command(slash_command, prefix_command)]
 /// Command for updating the bot.
 pub async fn update(
-    interaction: Context<'_>,
+    ctx: Context<'_>,
 ) -> Result<(), Error> {
-    interaction.reply("Updating!").await?;
+    ctx.reply("Updating!").await?;
     let child = Command::new("sh")
         .arg("-c")
         .arg("/root/rabby-stuff/ron-assista-bot/update.sh")

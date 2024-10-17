@@ -1,18 +1,19 @@
 #![allow(nonstandard_style)]
 use regex::Regex;
 use reqwest::header::HeaderValue;
+use reqwest::Client;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
-use super::{UserId, CONFIG, REQWEST_CLIENT, RBX_CLIENT};
+use super::{UserId, CONFIG};
 
-pub async fn discord_id_to_roblox_id(discord_id: UserId) -> Result<String, String> {
+pub async fn discord_id_to_roblox_id(reqwest_client: &Client, discord_id: UserId) -> Result<String, String> {
     let quote_regex = Regex::new("/\"/gi").expect("regex err");
     let bloxlink_api_key: HeaderValue = CONFIG.main.bloxlink_api_key.parse::<HeaderValue>().expect("err");
 
     let url = format!("https://api.blox.link/v4/public/discord-to-roblox/{}", discord_id.to_string());
-    let response = REQWEST_CLIENT.get(url)
+    let response = reqwest_client.get(url)
         .header("Authorization", bloxlink_api_key)
         .send()
         .await.expect("??");
@@ -93,7 +94,7 @@ struct Awarder {
     id: u64,
 }
 
-pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, String), String> {
+pub async fn badge_data(reqwest_client: &Client, roblox_id: String, badge_iterations: i64) -> Result<(i64, f64, String), String> {
     let badge_count = Arc::new(Mutex::new(0));
     let total_win_rate = Arc::new(Mutex::new(0.0));
     let awarders = Arc::new(Mutex::new(IndexMap::new()));
@@ -119,7 +120,7 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
                         if cursor.is_empty() { String::new() } else { format!("&cursor={}", cursor) }
                     );
 
-                    let response = REQWEST_CLIENT.get(&url)
+                    let response = reqwest_client.get(&url)
                         .send()
                         .await
                         .map_err(|e| format!("Request failed: {}", e))?;
@@ -191,9 +192,9 @@ pub async fn badge_data(roblox_id: String, badge_iterations: i64) -> Result<(i64
     Ok((badge_count, win_rate, awarders_string))
 }
 
-pub async fn roblox_friend_count(roblox_id: &str) -> Result<usize, String> {
+pub async fn roblox_friend_count(reqwest_client: &Client, roblox_id: &str) -> Result<usize, String> {
     let url = format!("https://friends.roblox.com/v1/users/{}/friends", roblox_id);
-    let response = REQWEST_CLIENT.get(&url).send().await.unwrap();
+    let response = reqwest_client.get(&url).send().await.unwrap();
     let response_text = response.text().await.unwrap();
     
     let parsed_json: Value = serde_json::from_str(&response_text).unwrap();
@@ -203,9 +204,9 @@ pub async fn roblox_friend_count(roblox_id: &str) -> Result<usize, String> {
         .len())
 }
 
-pub async fn roblox_group_count(roblox_id: &str) -> Result<usize, String> {
+pub async fn roblox_group_count(reqwest_client: &Client, roblox_id: &str) -> Result<usize, String> {
     let url = format!("https://groups.roblox.com/v2/users/{}/groups/roles?includeLocked=true", roblox_id);
-    let response = REQWEST_CLIENT.get(&url).send().await.unwrap();
+    let response = reqwest_client.get(&url).send().await.unwrap();
     let response_text = response.text().await.unwrap();
     
     let parsed_json: Value = serde_json::from_str(&response_text).unwrap();
@@ -215,7 +216,7 @@ pub async fn roblox_group_count(roblox_id: &str) -> Result<usize, String> {
         .len())
 }
 
-pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
+pub async fn merge_types(reqwest_client: &Client, rbx_client: &roboat::Client, users: Vec<String>) -> (Vec<String>, Vec<String>) {
     let mut roblox_ids: Vec<String> = Vec::new();
     let mut errors_vector: Vec<String> = Vec::new();
 
@@ -225,7 +226,7 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
                 errors_vector.push(format!("Couldn't find turn discord id string into actual discord id for {}, details:\n{}", user, err));
                 continue
             }};
-            let roblox_id_str = match self::discord_id_to_roblox_id(discord_id).await {Ok(id) => id, Err(err) => {
+            let roblox_id_str = match self::discord_id_to_roblox_id(&reqwest_client, discord_id).await {Ok(id) => id, Err(err) => {
                 errors_vector.push(format!("Couldn't find turn discord id into roblox id for {}, details:\n{}", user, err));
                 continue
             }};
@@ -233,7 +234,7 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
         } else if user.len() < 17 && user.chars().all(|c| c.is_digit(10)) {
             roblox_ids.push(user)
         } else if !user.chars().all(|c| c.is_digit(10)) {
-            let user_search = match RBX_CLIENT.username_user_details(vec![user.clone()], false).await {Ok(id) => id, Err(err) => {
+            let user_search = match rbx_client.username_user_details(vec![user.clone()], false).await {Ok(id) => id, Err(err) => {
                 errors_vector.push(format!("Couldn't find user details for {}, details:\n{}", user, err));
                 continue
             }};
@@ -245,8 +246,8 @@ pub async fn merge_types(users: Vec<String>) -> (Vec<String>, Vec<String>) {
     (roblox_ids, errors_vector)
 }
 
-pub async fn get_roblox_avatar_bust(user_id: String) -> String {
-    let response = REQWEST_CLIENT.get(format!("https://thumbnails.roblox.com/v1/users/avatar-bust?userIds={}&size=420x420&format=Png&isCircular=false", user_id))
+pub async fn get_roblox_avatar_bust(reqwest_client: &Client, user_id: String) -> String {
+    let response = reqwest_client.get(format!("https://thumbnails.roblox.com/v1/users/avatar-bust?userIds={}&size=420x420&format=Png&isCircular=false", user_id))
         .send()
         .await
         .unwrap()

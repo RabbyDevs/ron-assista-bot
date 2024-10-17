@@ -1,10 +1,11 @@
+use reqwest::Client;
 use serenity::all::{Attachment, EditMessage, Message};
 use uuid::Uuid;
 use std::io::Write;
 use std::process::{Command, Output};
+use std::sync::Arc;
 use image::{GenericImageView, ImageBuffer, Rgba, DynamicImage};
 use std::path::{Path, PathBuf};
-use super::REQWEST_CLIENT;
 use std::fs;
 use rayon::prelude::*;
 use tempfile::tempdir;
@@ -15,26 +16,21 @@ pub fn apply_mask(
     output_path: &str,
     flip_overlay: bool,
     height_float: f32,
-    fully_transparent: bool,
+    transparent: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let input_extension = Path::new(input_path).extension().and_then(|s| s.to_str()).unwrap_or("");
     
-    let temp_dir_path = Path::new("temp_dir");
+    let temp_dir_path = Path::new(".tmp");
     
-    if temp_dir_path.exists() {
-        fs::remove_dir_all(temp_dir_path)?;
-    }
-    fs::create_dir(temp_dir_path)?;
+    fs::create_dir_all(temp_dir_path)?;
     
-    match input_extension.to_lowercase().as_str() {
-        "png" | "jpg" | "jpeg" => apply_image_mask(input_path, overlay_path, output_path, flip_overlay, height_float, fully_transparent),
-        "mp4" | "mov" => apply_video_mask(temp_dir_path, input_path, overlay_path, output_path, flip_overlay, height_float, fully_transparent),
+    let result = match input_extension.to_lowercase().as_str() {
+        "png" | "jpg" | "jpeg" => apply_image_mask(input_path, overlay_path, output_path, flip_overlay, height_float, transparent),
+        "mp4" | "mov" => apply_video_mask(temp_dir_path, input_path, overlay_path, output_path, flip_overlay, height_float),
         _ => Err("Unsupported file format".into()),
-    }?;
+    };
     
-    fs::remove_dir_all(temp_dir_path)?;
-    
-    Ok(())
+    result
 }
 
 fn apply_image_mask(
@@ -43,7 +39,7 @@ fn apply_image_mask(
     output_path: &str,
     flip_overlay: bool,
     height_float: f32,
-    fully_transparent: bool,
+    transparent: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let input_image = image::open(input_path)?;
     let mut overlay_image = image::open(overlay_path)?;
@@ -62,7 +58,7 @@ fn apply_image_mask(
         if y < mask_height && y < resized_overlay.height() && x < resized_overlay.width() {
             let overlay_pixel = resized_overlay.get_pixel(x, y);
             let mask_alpha = overlay_pixel[3];
-            *pixel = if fully_transparent {
+            *pixel = if transparent {
                 apply_full_transparency(input_pixel, mask_alpha as f32 / 255.0)
             } else if mask_alpha == 0 {
                 input_pixel
@@ -96,8 +92,7 @@ fn apply_video_mask(
     overlay_path: &str,
     output_path: &str,
     flip_overlay: bool,
-    height_float: f32,
-    fully_transparent: bool,
+    height_float: f32
 ) -> Result<(), Box<dyn std::error::Error>> {
 
     let temp_input_path = temp_dir.join("input.mp4");
@@ -140,7 +135,7 @@ fn apply_video_mask(
             output_path.to_str().unwrap(),
             flip_overlay,
             height_float,
-            fully_transparent,
+            false,
         )
        .unwrap();
         // println!("Mask applied to frame: {:?}", path);
@@ -166,6 +161,14 @@ fn apply_video_mask(
         return Err(format!("FFmpeg command failed: {:#?}", output).into());
     }
 
+        // Clean up temporary files
+    fs::remove_file(&temp_input_path)?;
+    fs::remove_file(&temp_overlay_path)?;
+    for path in frame_paths {
+        fs::remove_file(temp_dir.join(format!("output_{}", path.clone().file_name().unwrap().to_str().unwrap())))?;
+        fs::remove_file(path)?;
+    }
+
     Ok(())
 }
 
@@ -186,13 +189,13 @@ pub fn video_format_changer(input_filename: &String, output_filename: &String) -
     output
 }
 
-pub async fn video_convert(new_message: Message, ctx: serenity::prelude::Context, attachment: Attachment) {
+pub async fn video_convert(new_message: Message, ctx: serenity::prelude::Context, reqwest_client: Arc<Client>, attachment: Attachment) {
     let mut msg = new_message.reply_ping(&ctx.http, format!("Converting {} to MP4!", attachment.filename)).await.unwrap();
-    let input_filename = format!("./tmp/input_{}.tmp", Uuid::new_v4());
-    let output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
+    let input_filename = format!("./.tmp/input_{}.tmp", Uuid::new_v4());
+    let output_filename = format!("./.tmp/output_{}.mp4", Uuid::new_v4());
 
     // Download the file
-    let response = REQWEST_CLIENT.get(&attachment.url).send().await.unwrap();
+    let response = reqwest_client.get(&attachment.url).send().await.unwrap();
     let bytes = response.bytes().await.unwrap();
     let mut file = std::fs::File::create(&input_filename).expect("Failed to create input file");
     file.write_all(&bytes).expect("Failed to write input file");
@@ -376,7 +379,7 @@ fn combine_gifs(segments: &[PathBuf], temp_path: &Path, output_filename: &str) -
                 "-i", final_concat_list.to_str().unwrap(),
                 "-c", "copy",
                 "-fs", "100M",
-                &format!("{}.tmp", output_filename),
+                &format!("{}..tmp", output_filename),
             ])
             .output()
             .expect("Failed to append to final GIF");

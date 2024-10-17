@@ -1,4 +1,4 @@
-use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr, NUMBER_REGEX, TIMER_SYSTEM};
+use super::{Context, Error, helper, UserId, Mentionable, serenity, FromStr};
 
 #[poise::command(slash_command, prefix_command)]
 /// Assigns a role, temporarily, based on the parameters inputted.
@@ -10,7 +10,7 @@ pub async fn timed_role(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    let purified_users = NUMBER_REGEX.replace_all(users.as_str(), "");
+    let purified_users = ctx.data().number_regex.replace_all(users.as_str(), "");
     if purified_users.is_empty() {
         ctx.say("Command failed; no users inputted, or users improperly inputted.").await?;
         return Ok(());
@@ -26,19 +26,17 @@ pub async fn timed_role(
     if duration.to_lowercase() == "delete" {
         // Delete the timer
         for user_id in users {
-            unsafe {
-                match TIMER_SYSTEM.delete_timer(&user_id.to_string()).await {
-                    Ok(()) => {
-                        // Remove the role from the user
-                        if let Err(e) = ctx.http().remove_member_role(guild_id, user_id, role.id, None).await {
-                            ctx.say(format!("Failed to remove role from user, but removed timer from user {}: {}", user_id, e)).await?;
-                        } else {
-                            ctx.say(format!("Timer deleted and role removed for user {}", user_id.mention())).await?;
-                        }
-                    },
-                    Err(e) => {
-                        ctx.say(format!("Failed to delete timer for user {}: {}", user_id, e)).await?;
+            match ctx.data().timer_system.delete_timer(&user_id.to_string()).await {
+                Ok(()) => {
+                    // Remove the role from the user
+                    if let Err(e) = ctx.http().remove_member_role(guild_id, user_id, role.id, None).await {
+                        ctx.say(format!("Failed to remove role from user, but removed timer from user {}: {}", user_id, e)).await?;
+                    } else {
+                        ctx.say(format!("Timer deleted and role removed for user {}", user_id.mention())).await?;
                     }
+                },
+                Err(e) => {
+                    ctx.say(format!("Failed to delete timer for user {}: {}", user_id, e)).await?;
                 }
             }
         }
@@ -55,21 +53,19 @@ pub async fn timed_role(
         let duration_secs = unix_timestamp - current_time;
 
         for user_id in users {
-            unsafe {
-                if let Err(e) = TIMER_SYSTEM.add_timer(user_id.to_string(), role.id.to_string(), duration_secs, false, None) {
-                    ctx.say(format!("Failed to add timer for user {}: {}", user_id, e)).await?;
-                    continue;
-                }
-
-                if let Err(e) = ctx.http().add_member_role(guild_id, user_id, role.id, None).await {
-                    ctx.say(format!("Failed to add role to user {}, Timer added but paused: {}", user_id, e)).await?;
-                    TIMER_SYSTEM.pause_timer(&user_id.to_string()).await.unwrap_or_else(|e| {
-                        println!("Failed to pause timer for user {}: {}", user_id, e);
-                    });
-                    continue;
-                }
-                ctx.say(format!("Role timer {} added for user {} for {}", role.id, user_id.mention(), timestamp_string)).await?;
+            if let Err(e) = ctx.data().timer_system.add_timer(user_id.to_string(), role.id.to_string(), duration_secs, false, None) {
+                ctx.say(format!("Failed to add timer for user {}: {}", user_id, e)).await?;
+                continue;
             }
+
+            if let Err(e) = ctx.http().add_member_role(guild_id, user_id, role.id, None).await {
+                ctx.say(format!("Failed to add role to user {}, Timer added but paused: {}", user_id, e)).await?;
+                ctx.data().timer_system.pause_timer(&user_id.to_string()).await.unwrap_or_else(|e| {
+                    println!("Failed to pause timer for user {}: {}", user_id, e);
+                });
+                continue;
+            }
+            ctx.say(format!("Role timer {} added for user {} for {}", role.id, user_id.mention(), timestamp_string)).await?;
         }
     }
 

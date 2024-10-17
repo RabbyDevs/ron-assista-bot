@@ -2,7 +2,6 @@ use std::io::Write;
 use ::serenity::all::Attachment;
 use serenity::all::CreateMessage;
 use uuid::Uuid;
-use crate::REQWEST_CLIENT;
 
 use super::{Context, Error, video_format_changer, image_to_png_converter, png_to_gif_converter, video_to_gif_converter, QualityPreset};
 
@@ -24,8 +23,8 @@ pub async fn gif(
         }
     };
 
-    let main_input_filename = format!("./tmp/main_input_{}.tmp", Uuid::new_v4());
-    let response = REQWEST_CLIENT.get(&attachment.url).send().await?;
+    let main_input_filename = format!("./.tmp/main_input_{}..tmp", Uuid::new_v4());
+    let response = ctx.data().reqwest_client.get(&attachment.url).send().await?;
     let bytes = response.bytes().await?;
     let mut file = std::fs::File::create(&main_input_filename)?;
     file.write_all(&bytes)?;
@@ -65,10 +64,10 @@ pub async fn gif(
 }
 
 async fn convert_video(content_type: &str, input: String, quality_preset: QualityPreset) -> Result<String, Error> {
-    let output_filename = format!("./tmp/output_{}.gif", Uuid::new_v4());
+    let output_filename = format!("./.tmp/output_{}.gif", Uuid::new_v4());
     
     let result = if content_type != "video/mp4" {
-        let mp4_output_filename = format!("./tmp/output_{}.mp4", Uuid::new_v4());
+        let mp4_output_filename = format!("./.tmp/output_{}.mp4", Uuid::new_v4());
         let output = video_format_changer(&input, &mp4_output_filename);
         std::fs::remove_file(&input).ok();
         
@@ -95,10 +94,10 @@ async fn convert_video(content_type: &str, input: String, quality_preset: Qualit
 }
 
 async fn convert_image(content_type: &str, input: String, quality_preset: QualityPreset) -> Result<String, Error> {
-    let output_filename = format!("./tmp/output_{}.gif", Uuid::new_v4());
+    let output_filename = format!("./.tmp/output_{}.gif", Uuid::new_v4());
     
     let result = if content_type != "image/png" {
-        let png_output_filename = format!("./tmp/output_{}.png", Uuid::new_v4());
+        let png_output_filename = format!("./.tmp/output_{}.png", Uuid::new_v4());
         let output = image_to_png_converter(&input, &png_output_filename);
         std::fs::remove_file(&input).ok();
         

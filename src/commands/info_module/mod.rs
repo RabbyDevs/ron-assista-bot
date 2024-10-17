@@ -1,4 +1,4 @@
-use super::{Context, Error, helper, FromStr, RBX_CLIENT, CONFIG, UserId, serenity, NUMBER_REGEX};
+use super::{Context, Error, helper, UserId, serenity, FromStr, CONFIG};
 
 pub mod discord_info;
 pub mod get_info;  
