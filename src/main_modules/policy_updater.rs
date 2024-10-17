@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 pub struct PolicyEntry {
-    content: String,
-    order: u64,
+    pub content: String,
+    pub order: u64,
 }
 
 pub struct PolicySystem {
@@ -67,6 +67,8 @@ impl PolicySystem {
             
             policies.push((key_str, entry));
         }
+
+        policies.sort_by_key(|(_, entry)| entry.order);
 
         Ok(policies)
     }

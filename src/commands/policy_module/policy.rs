@@ -76,8 +76,8 @@ pub async fn list(
     let policies = policy_system.list_policies_internal_names().unwrap();
     let mut policy_list_string = String::from("Current Policy Internal Names:");
 
-    for (internal_name, _) in policies.iter() {
-        policy_list_string.push_str(format!("\n{}", internal_name).as_str());
+    for (internal_name, entry) in policies.iter() {
+        policy_list_string.push_str(format!("\n{} - Order: {}", internal_name, entry.order).as_str());
     }
 
     ctx.say(policy_list_string).await?;
