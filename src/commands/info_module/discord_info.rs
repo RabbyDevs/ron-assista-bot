@@ -93,24 +93,24 @@ pub async fn discordinfo(
                     }
                 }
         
-                let mut perms_string = String::new();
-                let everyone_role_id = guild_id.everyone_role();
-                let everyone_role_permissions = role_permissions.remove(&everyone_role_id).unwrap();
-                for role in &member.roles {
-                    if let Some(perms) = role_permissions.remove(role) {
-                        if !perms.is_empty() {
-                            perms_string.push_str(&format!("<@&{}>: {}\n", role, perms.join(", ")));
-                        }
-                    }
-                }
+                // let mut perms_string = String::new();
+                // let everyone_role_id = guild_id.everyone_role();
+                // let everyone_role_permissions = role_permissions.remove(&everyone_role_id).unwrap();
+                // for role in &member.roles {
+                //     if let Some(perms) = role_permissions.remove(role) {
+                //         if !perms.is_empty() {
+                //             perms_string.push_str(&format!("<@&{}>: {}\n", role, perms.join(", ")));
+                //         }
+                //     }
+                // }
 
-                if !everyone_role_permissions.is_empty() {
-                    perms_string.push_str(&format!("@everyone: {}\n", everyone_role_permissions.join(", ")));
-                }
+                // if !everyone_role_permissions.is_empty() {
+                //     perms_string.push_str(&format!("@everyone: {}\n", everyone_role_permissions.join(", ")));
+                // }
         
-                if perms_string.is_empty() {
-                    perms_string = "No permissions found.".to_string();
-                }
+                // if perms_string.is_empty() {
+                //     perms_string = "No permissions found.".to_string();
+                // }
         
                 let role_string = member.roles
                     .iter()
@@ -128,20 +128,20 @@ pub async fn discordinfo(
                     role_embeds.push(role_embed);
                 }
 
-                let perms_chunks = split_string(perms_string, 1000);
-                let mut perms_embeds = vec![];
-                for (i, chunk) in perms_chunks.iter().enumerate() {
-                    let perms_embed = CreateEmbed::default()
-                        .title(format!("User Permissions (Part {})", i + 1))
-                        .description(chunk)
-                        .color(color.clone());
-                    perms_embeds.push(perms_embed);
-                }
+                // let perms_chunks = split_string(perms_string, 1000);
+                // let mut perms_embeds = vec![];
+                // for (i, chunk) in perms_chunks.iter().enumerate() {
+                //     let perms_embed = CreateEmbed::default()
+                //         .title(format!("User Permissions (Part {})", i + 1))
+                //         .description(chunk)
+                //         .color(color.clone());
+                //     perms_embeds.push(perms_embed);
+                // }
 
                 first_embed = first_embed.field("Member Nickname", nickname, true);
                 embeds.push(first_embed);
                 embeds.extend(role_embeds);
-                embeds.extend(perms_embeds);
+                // embeds.extend(perms_embeds);
 
                 if embeds.len() > 10 {
                     ctx.channel_id().say(&ctx.http(), "Warning: Too many embeds to send in one message. Some information may be truncated.").await?;
