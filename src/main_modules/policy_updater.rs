@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs, io::Write, path::Path, time::Duration};
 use futures::StreamExt;
 use serde::{Serialize, Deserialize};
-use serenity::all::{ChannelId, Context};
+use serenity::all::{ChannelId, Context, Message};
 use sled::Db;
 
 use super::CONFIG;
@@ -76,7 +76,7 @@ impl PolicySystem {
     /// Updates the policies and sends messages to the relevant Discord channels
     pub async fn update_policy(&self, ctx: &Context) -> sled::Result<()> {
         let policies = self.list_policies()?;
-
+    
         // Sort the policies by order and prepare the file contents
         let mut file_contents = String::new();
         for (_, policy) in policies.iter() {
@@ -85,11 +85,11 @@ impl PolicySystem {
                 policy.content
             ));
         }
-
+    
         // Define paths for the policy files
         let previous_file_path = Path::new("policy.txt");
         let current_file_path = Path::new("current_policy.txt");
-
+    
         // Compare with previous file if it exists
         if previous_file_path.exists() {
             let previous_content = fs::read_to_string(previous_file_path).unwrap_or_default();
@@ -97,24 +97,21 @@ impl PolicySystem {
                 // Send policy changes to the changes channel
                 let changes_channel_id = CONFIG.modules.policy.policy_changes_channel_id.parse::<u64>().unwrap();
                 let changes_channel = ctx.http.get_channel(changes_channel_id.into()).await.unwrap();
-
-                changes_channel
-                    .id()
-                    .say(ctx, format!("Policy updates detected:\n```diff\n{}\n```", diff_policies(&previous_content, &file_contents)))
-                    .await
-                    .unwrap();
+    
+                let diff = diff_policies(&previous_content, &file_contents);
+                send_long_message(ctx, &changes_channel.id(), &format!("Policy updates detected:\n```diff\n{}\n```", diff)).await;
             }
         }
-
+    
         // Write the current policy to the file
         let mut file = fs::File::create(current_file_path)?;
         file.write_all(file_contents.as_bytes())?;
-
+    
         // Send the current policy to the policy channel in sections
         let policy_channel_id = CONFIG.modules.policy.policy_channel_id.parse::<u64>().unwrap();
         let policy_channel = ctx.http.get_channel(policy_channel_id.into()).await.unwrap();
         let mut message_links = HashMap::new();
-
+    
         let policy_actual_id = ChannelId::new(policy_channel_id);
         // Step 1: Delete all messages in the policy channel
         let mut message_stream = policy_actual_id.messages_iter(ctx).boxed();
@@ -132,28 +129,25 @@ impl PolicySystem {
             policy_actual_id.delete_messages(ctx, to_delete).await.unwrap();
             tokio::time::sleep(Duration::from_millis(1000)).await; // Avoid rate limits
         }
-
+    
         for (_, policy) in policies.iter() {
-            let message = policy_channel
-                .id()
-                .say(ctx, format!("{}\n** **", policy.content))
-                .await
-                .unwrap();
-            message_links.insert(policy.order.clone(), (remove_hash_from_first_line(policy.content.as_str()), message.link()));
+            let messages = send_long_message(ctx, &policy_channel.id(), &format!("{}\n** **", policy.content)).await;
+            message_links.insert(policy.order.clone(), (remove_hash_from_first_line(policy.content.as_str()), messages.last().unwrap().link()));
         }
-
+    
         let mut toc_content = String::new();
-
-        // Send the table of contents with links
+    
+        // Prepare the table of contents with links
         for (key, (title, link)) in message_links.iter() {
-            toc_content.push_str(format!("{}. [{}]({})\n", key, title, link).as_str());
+            toc_content.push_str(&format!("{}. [{}]({})\n", key, title, link));
         }
-
-        policy_channel.id().say(ctx, format!("# Table of Contents:\n{}", toc_content)).await.unwrap();
-
+    
+        // Send the table of contents, splitting if necessary
+        send_long_message(ctx, &policy_channel.id(), &format!("# Table of Contents:\n{}", toc_content)).await;
+    
         // Move current policy file to previous
         fs::rename(current_file_path, previous_file_path)?;
-
+    
         Ok(())
     }
 }
@@ -184,4 +178,33 @@ fn remove_hash_from_first_line(input: &str) -> String {
     let trimmed_line = first_line.trim_start_matches('#');
     
     trimmed_line.to_string()
+}
+
+    // Helper function to send long messages
+async fn send_long_message(ctx: &Context, channel_id: &ChannelId, content: &str) -> Vec<Message> {
+    let mut messages = Vec::new();
+    let mut remaining = content;
+
+    while !remaining.is_empty() {
+        let (chunk, rest) = split_message(remaining);
+        let message = channel_id.say(ctx, chunk).await.unwrap();
+        messages.push(message);
+        remaining = rest;
+    }
+
+    messages
+}
+
+// Helper function to split a message into chunks
+fn split_message(content: &str) -> (&str, &str) {
+    if content.len() <= 2000 {
+        return (content, "");
+    }
+
+    let mut split_index = 2000;
+    while !content.is_char_boundary(split_index) {
+        split_index -= 1;
+    }
+
+    content.split_at(split_index)
 }
