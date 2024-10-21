@@ -12,25 +12,18 @@ mod main_modules;
 use main_modules::{helper, media::{video_convert, video_format_changer, video_to_gif_converter, image_to_png_converter, png_to_gif_converter, QualityPreset, apply_mask}, timer::TimerSystem, deleted_attachments::{self, AttachmentStoreDB, AttachmentStore}, policy_updater::PolicySystem};
 mod commands;
 use commands::{
-    media_module::{
-        convert_video,
-        convert_gif,
-        media_effects
-    },
-    log_module::{
+    info_module::{
+        discord_info,
+        get_info
+    }, log_module::{
         discord_log, 
         false_infraction, 
         probation_log, 
         roblox_log, 
         role_log
-    },
-    info_module::{
-        discord_info,
-        get_info
-    },
-    time_module::timed_role, 
-    policy_module::policy,
-    update
+    }, media_module::{
+        convert_gif, convert_video, media_effects
+    }, playground::auror, policy_module::policy, time_module::timed_role, update
 };
 
 static_toml::static_toml! {
@@ -389,7 +382,8 @@ async fn main() {
                 convert_video::convert_video(),
                 convert_gif::gif(),
                 media_effects::media(),
-                policy::policy()
+                policy::policy(),
+                auror::id_to_mention()
             ];
 
     let color_string = CONFIG.main.color; // Assuming this retrieves the "43, 63, 102" string
